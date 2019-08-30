@@ -32,12 +32,14 @@ in the SitesTable of the Network. Multiple sites may exist on the same point
 but all should have a unique ID
 '''
 class Site(object):
-    def __init__(self,id,lat,long,h,z=0,flC = []):
+    def __init__(self,id,lat,long,h,z=0,flC = None):
         self.id = id
         self.latLong = LatLong(lat,long)
         self.z = z
         self.h = h
-        self.flowsCon = flC
+        if flC == None:
+            self.flowsCon = []
+        
     def __eq__(self,other):
         return self.id == other.id
     def __lt__(self,other):
@@ -50,6 +52,11 @@ class Site(object):
         return "Site <{0}> {1}".format(self.id,self.latLong)
     def addFlow(self,flow):
         self.flowsCon.append(flow)
+    def isProperNode(self):
+        # Return if there is either one line connected (source or sink) or is a confluence (three)
+        # Will return false if this site is intermediately on a line
+        return len(self.flowsCon) >= 1 and len(self.flowsCon) <= 3 and not len(self.flowsCon) == 2
+
     __repr__ = __str__
 
 '''
@@ -115,13 +122,15 @@ def isolateNet(jsonDict):
         theID = geomObj['properties']['OBJECTID']
         rc = geomObj['properties']['ReachCode']
         length = geomObj['properties']['LengthKM']
+        upSite = None
+        downSite = None
         if geomObj['geometry']['type'] == "MultiLineString":
             # We have a buggy entry, take the first entry only
             upSite = Site(siteCounter,upPoint[0][0],upPoint[0][1],upPoint[0][3])
             siteCounter += 1
             eI = len(downPoint) - 1
             # Take the last entry of the last line segment
-            downPoint = Site(siteCounter,downPoint[eI][0],downPoint[eI][1],downPoint[eI][3])
+            downSite = Site(siteCounter,downPoint[eI][0],downPoint[eI][1],downPoint[eI][3])
             siteCounter += 1
         elif geomObj['geometry']['type'] == "LineString":
             upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
@@ -155,10 +164,11 @@ def consolodateNetwork(net):
                 continue
             else:
                 # Do comparison
-                if fl2.downstreamSite.hasPositionalEquality(sLook):
+                if fl2.downstreamSite.hasPositionalEquality(sLook) and not sLook == fl2.downstreamSite:
                     # Make fl2's downstream point sLook
                     markedForDelete = fl2.downstreamSite
                     fl2.downstreamSite = sLook
+                    sLook.addFlow(fl2)
                     net.siteTable.remove(markedForDelete)
 
 '''
@@ -192,7 +202,7 @@ def idByProportion(maxDownstreamID,watershed):
     pass
 
 if __name__ == "__main__":
-    dictt = importJSON("Geometric.json")
+    dictt = importJSON("SmallNet001.json")
     net = isolateNet(dictt)
     consolodateNetwork(net)
     sinks = calculateSink(net)
