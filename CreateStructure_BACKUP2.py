@@ -94,10 +94,10 @@ def importJSON(filepath):
         f = open(filepath,"r").read()
         y = json.loads(f)
         return y
-    except IOError as e:
+    except e:
         print(e)
         return None
-    
+
 '''
 Isolate a network from a geoJSON dictionary
 (Give the fields we want and put into a class)
@@ -115,24 +115,16 @@ def isolateNet(jsonDict):
         theID = geomObj['properties']['OBJECTID']
         rc = geomObj['properties']['ReachCode']
         length = geomObj['properties']['LengthKM']
-        if not (type(upPoint[0] is float)):
-            # We have a buggy entry, take the first entry only
-            upSite = Site(siteCounter,upPoint[0][0],upPoint[0][1],upPoint[0][3])
-            siteCounter += 1
-            downPoint = Site(siteCounter,downPoint[0][0],downPoint[0][1],downPoint[0][3])
-            siteCounter += 1
-        else:
-            upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
-            siteCounter += 1
-            downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
-            siteCounter += 1
         
+        upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
         sitesList.append(upSite)
+        siteCounter += 1
+        downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
         sitesList.append(downSite)  
         fl2Add = Flow(theID,upSite,downSite,length,rc)    
         upSite.addFlow(fl2Add)
         downSite.addFlow(fl2Add)
-        
+        siteCounter += 1
         linesList.append(fl2Add)
     
     return Network(linesList,sitesList)
@@ -179,7 +171,7 @@ def idByProportion(maxDownstreamID,watershed):
     pass
 
 if __name__ == "__main__":
-    dictt = importJSON("Geometric.json")
+    dictt = importJSON("Converted.json")
     net = isolateNet(dictt)
     consolodateNetwork(net)
     sinks = calculateSink(net)
