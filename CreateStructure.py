@@ -65,7 +65,7 @@ class Flow(object):
         self.id  = id
         self.reachCode = reachCode
         self.length = length
-        
+        self.thisAndUpstream = -1 # This and upstream length
     def __lt__(self,other):
         return self.length < other.length
     def __gt__(self,other):
@@ -115,18 +115,23 @@ def isolateNet(jsonDict):
         theID = geomObj['properties']['OBJECTID']
         rc = geomObj['properties']['ReachCode']
         length = geomObj['properties']['LengthKM']
-        if not (type(upPoint[0] is float)):
+        if geomObj['geometry']['type'] == "MultiLineString":
             # We have a buggy entry, take the first entry only
             upSite = Site(siteCounter,upPoint[0][0],upPoint[0][1],upPoint[0][3])
             siteCounter += 1
-            downPoint = Site(siteCounter,downPoint[0][0],downPoint[0][1],downPoint[0][3])
+            eI = len(downPoint) - 1
+            # Take the last entry of the last line segment
+            downPoint = Site(siteCounter,downPoint[eI][0],downPoint[eI][1],downPoint[eI][3])
             siteCounter += 1
-        else:
+        elif geomObj['geometry']['type'] == "LineString":
             upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
             siteCounter += 1
             downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
             siteCounter += 1
-        
+        else:
+            print("ERROR: Unknown object type encountered")
+            raise RuntimeError()
+
         sitesList.append(upSite)
         sitesList.append(downSite)  
         fl2Add = Flow(theID,upSite,downSite,length,rc)    
@@ -157,7 +162,8 @@ def consolodateNetwork(net):
                     net.siteTable.remove(markedForDelete)
 
 '''
-Calculate the sink for a given network. Returns the ID of that Site
+Calculate the sink for a given network.
+Returns the ID of that Site
 '''
 def calculateSink(net):
     kaboodle = []
@@ -168,6 +174,13 @@ def calculateSink(net):
                 # This site is downstream and is the only downstream site left
                 kaboodle.append(kit)
     return kaboodle
+
+'''
+recalculates the upstream distances for a network starting from a sink
+'''
+def calculateUpstreamDistances(net,sinkSite):
+    pass
+
 
 '''
 Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
