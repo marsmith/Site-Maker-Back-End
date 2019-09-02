@@ -249,5 +249,6 @@ if __name__ == "__main__":
     dictt = importJSON("SmallNet001.json")
     net = isolateNet(dictt)    
     sinks = calculateSink(net)
+    
     print(net)
 
