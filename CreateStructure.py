@@ -39,7 +39,7 @@ class Site(object):
         self.h = h
         if flC == None:
             self.flowsCon = []
-        
+        self.mathID = -1
     def __eq__(self,other):
         return self.id == other.id
     def __lt__(self,other):
@@ -56,9 +56,28 @@ class Site(object):
         # Return if there is either one line connected (source or sink) or is a confluence (three)
         # Will return false if this site is intermediately on a line
         return len(self.flowsCon) >= 1 and len(self.flowsCon) <= 3 and not len(self.flowsCon) == 2
-
+    ''' Return list of connected sites either upstream or downstream
+    e
+    ''' 
+    def removeInvolvedFlows(self,site):
+        for f in self.flowsCon:
+            if f.upstreamSite == site or f.downstreamSite == site:
+                self.flowsCon.remove(f)   
+    def connectedSites(self):
+        csl = []
+        for f in self.flowsCon:
+            us = f.upstreamSite
+            ds = f.downstreamSite
+            if us == self:
+                csl.append((ds,DOWNSTREAM_CON,f))
+            elif ds == self:
+                csl.append((us,UPSTREAM_CON,f))
+        return csl
+    
     __repr__ = __str__
 
+DOWNSTREAM_CON = 1
+UPSTREAM_CON = 2
 '''
 Represents a flowline which connects two sites (either fake or real)
 Has unique ID to be updated in precompilation; contains reach code
@@ -92,7 +111,11 @@ class Network(object):
         self.totalSize = 0
         self.flowTable = flows
         self.siteTable = sites
-    
+    def removeInvolvedFlows(self,site):
+        for f in self.flowTable:
+            if f.upstreamSite == site or f.downstreamSite == site:
+                self.flowTable.remove(f)
+        
 '''
 Will import a dictionary from a JSON file
 '''
@@ -104,10 +127,19 @@ def importJSON(filepath):
     except IOError as e:
         print(e)
         return None
-    
+
+# Will return the site which either has positional eq with "site" or site itself
+def peq(siteList,site):
+    for e in siteList:
+        if e.hasPositionalEquality(site):
+            return e
+    return site
+
 '''
 Isolate a network from a geoJSON dictionary
-(Give the fields we want and put into a class)
+(Give the fields we want and put into a class).
+Will consolodate the network upon creation to save
+time
 '''
 def isolateNet(jsonDict):
     fList = jsonDict["features"]
@@ -126,50 +158,52 @@ def isolateNet(jsonDict):
         downSite = None
         if geomObj['geometry']['type'] == "MultiLineString":
             # We have a buggy entry, take the first entry only
-            upSite = Site(siteCounter,upPoint[0][0],upPoint[0][1],upPoint[0][3])
-            siteCounter += 1
-            eI = len(downPoint) - 1
-            # Take the last entry of the last line segment
-            downSite = Site(siteCounter,downPoint[eI][0],downPoint[eI][1],downPoint[eI][3])
-            siteCounter += 1
+            for fi in range(len(coordList)):
+                upSite = Site(siteCounter,coordList[fi][0][0],coordList[fi][0][1],coordList[fi][0][3])
+                upGood = peq(sitesList,upSite)
+                if upGood == upSite:
+                    siteCounter += 1
+                    sitesList.append(upSite)
+
+                eI = len(coordList[fi]) - 1
+                # Take the last entry of the last line segment
+                downSite = Site(siteCounter,coordList[fi][eI][0],coordList[fi][eI][1],coordList[fi][eI][3])
+                downGood = peq(sitesList,downSite)
+                if downGood == downSite:
+                    siteCounter += 1                
+                    sitesList.append(downSite)
+
+                fl2Add = Flow(theID,upGood,downGood,length,rc)    
+                upGood.addFlow(fl2Add)
+                downGood.addFlow(fl2Add)                
+                linesList.append(fl2Add)
+
         elif geomObj['geometry']['type'] == "LineString":
             upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
-            siteCounter += 1
+            upGood = peq(sitesList,upSite)
+            if upGood == upSite:
+                siteCounter += 1
+                sitesList.append(upSite)
             downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
-            siteCounter += 1
+            downGood = peq(sitesList,downSite)
+            if downGood == downSite:
+                siteCounter += 1                
+                sitesList.append(downSite)
+
+            
+            fl2Add = Flow(theID,upGood,downGood,length,rc)    
+            upGood.addFlow(fl2Add)
+            downGood.addFlow(fl2Add)            
+            linesList.append(fl2Add)
         else:
             print("ERROR: Unknown object type encountered")
-            raise RuntimeError()
-
-        sitesList.append(upSite)
-        sitesList.append(downSite)  
-        fl2Add = Flow(theID,upSite,downSite,length,rc)    
-        upSite.addFlow(fl2Add)
-        downSite.addFlow(fl2Add)
+            raise RuntimeError()     
         
-        linesList.append(fl2Add)
     
     return Network(linesList,sitesList)
 
-'''
-Remove all sites in network which are overlaping based on geometry
-Update references to these sites in the flow table
-'''
-def consolodateNetwork(net):
-    # Go through flows and see if endpoints of each flow are also endpoints of other flows
-    for flow in net.flowTable:
-        sLook = flow.downstreamSite
-        for fl2 in net.flowTable:
-            if flow == fl2:
-                continue
-            else:
-                # Do comparison
-                if fl2.downstreamSite.hasPositionalEquality(sLook) and not sLook == fl2.downstreamSite:
-                    # Make fl2's downstream point sLook
-                    markedForDelete = fl2.downstreamSite
-                    fl2.downstreamSite = sLook
-                    sLook.addFlow(fl2)
-                    net.siteTable.remove(markedForDelete)
+        
+    
 
 '''
 Calculate the sink for a given network.
@@ -192,6 +226,16 @@ def calculateUpstreamDistances(net,sinkSite):
     pass
 
 
+def positionalEqualityList(net):
+    l = []
+    for site in net.siteTable:
+        for situ in net.siteTable:
+            if site == situ:
+                continue
+            elif site.hasPositionalEquality(situ):
+                l.append((site,situ))
+    return l
+
 '''
 Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
 1km is the mininum distance to generate unique 8 digit ID's.
@@ -203,8 +247,7 @@ def idByProportion(maxDownstreamID,watershed):
 
 if __name__ == "__main__":
     dictt = importJSON("SmallNet001.json")
-    net = isolateNet(dictt)
-    consolodateNetwork(net)
+    net = isolateNet(dictt)    
     sinks = calculateSink(net)
     print(net)
 
