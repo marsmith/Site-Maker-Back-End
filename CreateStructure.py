@@ -236,19 +236,25 @@ def positionalEqualityList(net):
                 l.append((site,situ))
     return l
 
+def removeUseless(net):
+    pass
+
 '''
 Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
 1km is the mininum distance to generate unique 8 digit ID's.
 0000 | 0000
 WTRSHD  UNIQUE
 '''
-def idByProportion(maxDownstreamID,watershed):
+def idByProportion(net,maxDownstreamID,watershed):
     pass
 
 if __name__ == "__main__":
     dictt = importJSON("SmallNet001.json")
     net = isolateNet(dictt)    
     sinks = calculateSink(net)
-    
+    removeUseless(net)
+    assert(len(sinks) == 1)
+    calculateUpstreamDistances(net,sinks[0])
+    idByProportion(net,9999,1001)
     print(net)
 
