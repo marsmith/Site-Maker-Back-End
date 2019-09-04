@@ -115,6 +115,11 @@ class Network(object):
         self.totalSize = 0
         self.flowTable = flows
         self.siteTable = sites
+    def recalculateTotalLength(self):
+        self.totalSize = 0
+        for f in self.flowTable:
+            self.totalSize += f.length
+        
     def removeInvolvedFlows(self,site):
         i = 0        
         while i in range(len(self.flowTable)):
@@ -305,7 +310,8 @@ def removeUseless(net):
         else:
             i += 1
 
-
+def fleshOutStreams(net,sinkSite):
+    pass
 
 '''
 Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
