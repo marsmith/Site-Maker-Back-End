@@ -470,7 +470,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("SmallNet001.json")
+    dictt = importJSON("Data/SmallNet001.json")
     net = isolateNet(dictt)    
     sinks = calculateSink(net)
     removeUseless(net)
