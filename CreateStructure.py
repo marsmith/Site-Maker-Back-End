@@ -230,41 +230,27 @@ def calculateSink(net):
             if fds == kit:
                 # This site is downstream and is the only downstream site left
                 kaboodle.append(kit)
+    if len(kaboodle) != 1:
+        raise RuntimeError("ERROR: calculateSink: Detected invalid graph")
     return kaboodle
 
 '''
-recalculates the upstream distances for a network starting from a sink
+Calculate the faucets for a given network
+Returns the 
+'''
+def calculateFaucets(net):
+    faucets = []
+    for s in net.siteTable:
+        if len(s.flowsCon) == 1 and s.flowsCon[0].upstreamSite == s:
+            # s is a faucet (the most upstream on a particular branch)
+            faucets.append(s)
+    return faucets
+
+'''
+Recalculates the upstream distances for a network starting from a sink
 '''
 def calculateUpstreamDistances(net,sinkSite):
-    dist = [sys.maxsize] * len(net.siteTable)
-    dist[sinkSite.id] = 0
-    pathSet = [False] * len(net.siteTable)
-
-    for n in range(len(net.siteTable)):
-        #pick node with minimum distance that hasn't been processed
-        u = minDistance(dist, pathSet, net)
-        pathSet[u] = True
-
-        for v in range(len(net.siteTable)):
-            temp_dist = 0
-            for flow in net.flowTable:
-                if int(flow.upstreamSite.id) == v and int(flow.downstreamSite.id) == u:
-                     temp_dist = flow.length
-                
-            if temp_dist > 0 and pathSet[v] == False and \
-                dist[v] > dist[u] + temp_dist:
-                dist[v] = dist[u] + temp_dist
-                print(str(v) + " dist:  " + str(dist[v]))
-    return dist
-
-def minDistance(dist, pathSet, net):
-    min = sys.maxsize
-    min_index = -1
-    for v in range(len(net.siteTable)):
-        if dist[v] < min and pathSet[v] == False:
-            min = dist[v]
-            min_index = v
-    return min_index
+    
 
 def positionalEqualityList(net):
     l = []
@@ -320,7 +306,7 @@ Will assign real ID's to the fake nodes via the Simple Proportional Creation Alg
 WTRSHD  UNIQUE
 '''
 def idByProportion(net,maxDownstreamID,watershed):
-    pass
+    
 
 if __name__ == "__main__":
     dictt = importJSON("SmallNet001.json")

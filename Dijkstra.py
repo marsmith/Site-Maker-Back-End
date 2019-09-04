@@ -1,23 +1,15 @@
-def minDistance(dist, pathSet, net):
-    min = sys.maxint
-    
-    for v in range(len(net.siteTable)):
-        if dist[v] < min and pathSet[v] == False:
-            min = dist[v]
-            min_index = v
-    return min_index
+import sys
 
 def calculateUpstreamDistances(net,sinkSite):
-    dist = [sys.maxint] * len(net.siteTable)
+    length = net.siteTable[-1].id + 1
+    dist = [sys.maxsize] * length
     dist[sinkSite.id] = 0
-    pathSet = [False] * len(net.siteTable)
-
-    for n in range(len(net.siteTable)):
+    pathSet = [False] * length
+    for n in range(length):
         #pick node with minimum distance that hasn't been processed
-        u = minDistance(dist, pathSet, net)
+        u = minDistance(dist, pathSet, length)
         pathSet[u] = True
-
-        for v in range(len(net.siteTable)):
+        for v in range(length):
             temp_dist = 0
             for flow in net.flowTable:
                 if int(flow.upstreamSite.id) == v and int(flow.downstreamSite.id) == u:
@@ -26,4 +18,14 @@ def calculateUpstreamDistances(net,sinkSite):
             if temp_dist > 0 and pathSet[v] == False and \
                 dist[v] > dist[u] + temp_dist:
                 dist[v] = dist[u] + temp_dist
-                print str(v) + " dist:  " + str(dist[v])
+                print(str(v) + " dist:  " + str(dist[v]))
+    return dist
+
+def minDistance(dist, pathSet, length):
+    min = sys.maxsize
+    min_index = -1
+    for v in range(length):
+        if dist[v] < min and pathSet[v] == False:
+            min = dist[v]
+            min_index = v
+    return min_index
