@@ -60,9 +60,13 @@ class Site(object):
     e
     ''' 
     def removeInvolvedFlows(self,site):
-        for f in self.flowsCon:
+        i = 0        
+        while i in range(len(self.flowsCon)):
+            f = self.flowsCon[i]
             if f.upstreamSite == site or f.downstreamSite == site:
-                self.flowsCon.remove(f)   
+                self.flowsCon.remove(f)
+            else:
+                i += 1 
     def connectedSites(self):
         csl = []
         for f in self.flowsCon:
@@ -112,9 +116,13 @@ class Network(object):
         self.flowTable = flows
         self.siteTable = sites
     def removeInvolvedFlows(self,site):
-        for f in self.flowTable:
+        i = 0        
+        while i in range(len(self.flowTable)):
+            f = self.flowTable[i]
             if f.upstreamSite == site or f.downstreamSite == site:
                 self.flowTable.remove(f)
+            else:
+                i += 1
         
 '''
 Will import a dictionary from a JSON file
@@ -236,8 +244,41 @@ def positionalEqualityList(net):
                 l.append((site,situ))
     return l
 
+''' Merged flows inherit the length of the subsegments
+They do NOT add these lengths together
+'''
 def removeUseless(net):
-    pass
+    i = 0
+    while i in range(len(net.siteTable)):
+        sit = net.siteTable[i]
+        cs = sit.connectedSites()
+        if len(cs) == 2:
+            # This site is deletable
+            coni0 = cs[0]
+            coni1 = cs[1]
+            assert(coni0[2].length == coni1[2].length)
+            newLen = coni0[2].length
+            fl2Add = None
+            if coni0[1] == DOWNSTREAM_CON:
+                # coni0 is downstream of deletable site ('sit')
+                # coni1 is upstream
+                fl2Add = Flow(coni0[2].id,coni1[0],coni0[0],newLen,coni0[2].reachCode)  
+            else:
+                # coni0 is upstream of 'sit'
+                # coni1 is downstream
+                fl2Add = Flow(coni1[2].id,coni0[0],coni1[0],newLen,coni1[2].reachCode) 
+            net.removeInvolvedFlows(sit)
+            coni0[0].removeInvolvedFlows(sit)
+            coni1[0].removeInvolvedFlows(sit)
+            
+            net.siteTable.remove(sit)
+            coni0[0].flowsCon.append(fl2Add)
+            coni1[0].flowsCon.append(fl2Add)
+            net.flowTable.append(fl2Add)
+        else:
+            i += 1
+
+
 
 '''
 Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
