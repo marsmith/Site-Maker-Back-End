@@ -1,6 +1,6 @@
 import sys
 
-def calculateUpstreamDistances(net,sinkSite):
+def netwideDistanceFromSink(net,sinkSite):
     length = net.siteTable[-1].id + 1
     dist = [sys.maxsize] * length
     dist[sinkSite.id] = 0

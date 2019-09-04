@@ -1,6 +1,7 @@
 import json
 import numpy
 import sys
+import Dijkstra
 
 degree_sign= u'\N{DEGREE SIGN}'
 
@@ -27,6 +28,54 @@ class LatLong(object):
         return self.srcLat == other.srcLat and self.srcLong == other.srcLong
     __repr__ = __str__
 
+class SiteID(object):
+    def __init__(self,watershed = 1,value = 9999,extension = None):
+        frm = str("%04d"%watershed)
+        frm2 = str("%04d"%value)
+        if extension is None:
+            # 8 digit general ID
+            self.fullID = int(frm + frm2)
+            
+        else:
+            # 10 digit special case
+            frm3 = str("%02d"%extension)
+            self.fullID = int(frm + frm2 + frm3)
+        self.watershed = watershed
+        self.value = value
+        self.extension = extension
+    def __str__(self):
+        if self.extension is None:
+            return str("%08d"%self.fullID)
+        else:
+            return str("%10d"%self.fullID)
+    def __lt__(self,other):
+        if isinstance(other,int):
+            return self.fullID < other
+        elif isinstance(other,SiteID):
+            if self.watershed == other.watershed:
+                if self.value == other.value:
+                    if self.watershed is None and other.watershed is None:
+                        return False
+                    else:
+                        if self.watershed is None:
+                            return False
+                        else:
+                            return True
+                else:
+                    return self.value < other.value
+            else:
+                return self.watershed < other.watershed
+        else:
+            raise RuntimeError("ERROR: SiteID __lt__ secondary argument not compatible!")
+        
+    def __gt__(self,other):
+        return not self <= other
+    def __eq__(self,other):
+        return self.fullID == other.fullID
+    __repr__ = __str__
+
+
+
 '''
 Represents the endpoint of a flow line. The "Nodes" of a Network. Stored
 in the SitesTable of the Network. Multiple sites may exist on the same point
@@ -40,13 +89,16 @@ class Site(object):
         self.h = h
         if flC == None:
             self.flowsCon = []
-        self.mathID = -1
+        self.assignedID = -1 # This is what is assigned via algorithm
+    
     def __eq__(self,other):
         return self.id == other.id
     def __lt__(self,other):
         return self.id < other.id
     def __gt__(self,other):
         return self.id > other.id
+    def hasAssignedIDEquality(self,other):
+        return self.assignedID == other.assignedID
     def hasPositionalEquality(self,other):
         return self.latLong == other.latLong
     def __str__(self):
@@ -116,6 +168,7 @@ class Network(object):
         self.totalSize = 0
         self.flowTable = flows
         self.siteTable = sites
+        self.unitLength = 1 # km; How many km before incrementing what ID should be assigned proportionally
     def recalculateTotalLength(self):
         self.totalSize = 0
         for f in self.flowTable:
@@ -215,9 +268,6 @@ def isolateNet(jsonDict):
         
     
     return Network(linesList,sitesList)
-
-        
-    
 
 '''
 Calculate the sink for a given network.
@@ -336,14 +386,88 @@ def removeUseless(net):
             i += 1
 
 
+
 '''
-Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
-1km is the mininum distance to generate unique 8 digit ID's.
+Will assign real ID's to the fake nodes via the Proportional Site Naming Algorithm
+1km is the mininum distance to generate unique 8 digit ID's. The network must represent the 
+same watershed in this case.
+pSNA will NOT shift down ID's if one exists already. This is a theoretical model
+pSNA WILL generate 10 digit ID's if the distance accumulated between two sites is less than the
+unit length (1km by default)
 0000 | 0000
 WTRSHD  UNIQUE
 '''
-def idByProportion(net,maxDownstreamID,watershed):
-    pass
+def pSNA(net,maxDownstreamID,sinkSite = None):
+    def siteIDGen(idBefore,totalAccum,leng,unitDist):
+        
+        frac = leng / unitDist
+        newValue = int(idBefore.value - numpy.floor(frac))
+        if newValue == idBefore.value:
+            # Alter the extension
+            newExt = int(numpy.floor(frac * 10))
+            if newExt == idBefore.extension:
+                # We have a serious problem
+                raise RuntimeError("ERROR: pSNA() :_ siteIDGen() Ran out of address space in segment")
+            return SiteID(idBefore.watershed,newValue,newExt)
+        else:
+            return SiteID(idBefore.watershed,newValue)
+    #---------------------------------------------------------------------
+
+    # Use bitwise or to format final values
+    if sinkSite is None:
+        sinkSite = calculateSink(net)
+    queue = []  
+    starterTuple = (sinkSite,None,None)  
+    queue.append(starterTuple)
+    # Step 1: Starting from the sink site, assign the site.assignedID field
+    idNext = maxDownstreamID
+    distAccum = 0
+    while len(queue) >= 1:
+        # Pop out the tuple
+        t = queue.pop(0)
+        u = t[0]
+        if t[2] is None:
+            # Assume we are at start
+            distAccum += 0
+        else:
+            distAccum += t[2].length
+        cs = u.connectedSites()
+        lifechoices = [] # The upstream paths we may choose              
+        for theCon in cs:
+            if theCon[1] == UPSTREAM_CON and theCon[0].assignedID < 0:
+                # The connection is upstream and has not been assigned yet
+                lifechoices.append(theCon)
+                
+        lifechoices.sort(key= lambda conTup1: conTup1[2].thisAndUpstream,reverse=False)
+        # Add these future explorations into the queue in order
+        if len(cs) == 3:
+            # Confluence, append to the begining of queue
+            # but preserve the order of lifechoices in the queue as well
+            iIns = 0
+            for conTup in lifechoices:
+                queue.insert(iIns,conTup)
+                iIns += 1
+        elif len(cs) == 1:
+            # Non-Confluence, append to the end of the queue
+            # This is to handle special cases such as loops
+            if cs[0][0].assignedID < 0:
+                # Not assgned yet!
+                queue.append(cs[0])
+        else:
+            # INVALID NODE
+            raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
+        if t[2] is None:
+            u.assignedID = maxDownstreamID
+            idNext = u.assignedID
+        else:
+            newID = siteIDGen(idNext,distAccum,t[2].length,net.unitLength)        
+            u.assignedID = newID
+            idNext = newID
+
+
+# -------------------------------------------------------
+# MAIN                  MAIN                    MAIN
+# -------------------------------------------------------
 
 if __name__ == "__main__":
     dictt = importJSON("SmallNet001.json")
@@ -354,6 +478,7 @@ if __name__ == "__main__":
     faucets = calculateFaucets(net)
     calculateUpstreamDistances(net,faucets)
     net.recalculateTotalLength()
-    idByProportion(net,9999,1001)
+
+    pSNA(net,SiteID(1001,9999,None),sinks[0])
     print(net)
 
