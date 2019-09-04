@@ -1,6 +1,7 @@
 import json
 import numpy
 import sys
+
 degree_sign= u'\N{DEGREE SIGN}'
 
 '''
@@ -95,7 +96,7 @@ class Flow(object):
         self.id  = id
         self.reachCode = reachCode
         self.length = length
-        self.thisAndUpstream = -1 # This and upstream length
+        self.thisAndUpstream = self.length # This and upstream length
     def __lt__(self,other):
         return self.length < other.length
     def __gt__(self,other):
@@ -249,7 +250,45 @@ def calculateFaucets(net):
 '''
 Recalculates the upstream distances for a network starting from a sink
 '''
-def calculateUpstreamDistances(net,sinkSite):
+def calculateUpstreamDistances(net,faucets):
+    # Written by Nicole and Marcus
+    queue = list(faucets)
+    while len(queue) >= 1:
+        u = queue.pop(0)
+        totalUp = 0
+        totalDown = 0
+        cs = u.connectedSites()
+        dcon = None
+        if len(cs) == 1:
+            # This is a true faucet
+            
+            if cs[0][1] == DOWNSTREAM_CON:
+                dcon = cs[0][2]
+                
+            else:
+
+                break # This is the sink
+            # Append downstream site if not already in the queue
+            if cs[0][0] not in queue:
+                queue.append(cs[0][0])
+        else:
+            for entry in cs:
+                if entry[1] == DOWNSTREAM_CON:
+                    # add to totalDown
+                    totalDown += entry[2].length
+                    dcon = entry[2]
+                    # Append downstream site if not already in the queue
+                    if entry[0] not in queue:
+                        queue.append(entry[0])
+                else:
+                    totalUp += entry[2].thisAndUpstream
+            totalDown += totalUp
+            if dcon is None:
+                # Reached the end
+                raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
+            else:
+                dcon.thisAndUpstream = totalDown
+
     
 
 def positionalEqualityList(net):
@@ -296,8 +335,6 @@ def removeUseless(net):
         else:
             i += 1
 
-def fleshOutStreams(net,sinkSite):
-    pass
 
 '''
 Will assign real ID's to the fake nodes via the Simple Proportional Creation Algorithm
@@ -306,7 +343,7 @@ Will assign real ID's to the fake nodes via the Simple Proportional Creation Alg
 WTRSHD  UNIQUE
 '''
 def idByProportion(net,maxDownstreamID,watershed):
-    
+    pass
 
 if __name__ == "__main__":
     dictt = importJSON("SmallNet001.json")
@@ -314,7 +351,9 @@ if __name__ == "__main__":
     sinks = calculateSink(net)
     removeUseless(net)
     assert(len(sinks) == 1)
-    calculateUpstreamDistances(net,sinks[0])
+    faucets = calculateFaucets(net)
+    calculateUpstreamDistances(net,faucets)
+    net.recalculateTotalLength()
     idByProportion(net,9999,1001)
     print(net)
 
