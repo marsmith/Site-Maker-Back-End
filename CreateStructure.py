@@ -435,15 +435,25 @@ WTRSHD  UNIQUE
 def pSNA(net,maxDownstreamID,sinkSite = None):
     def siteIDGen(idBefore,totalAccum,leng,unitDist):
         
-        frac = leng / unitDist
+        frac = leng / unitDist        
         newValue = int(idBefore.value - numpy.floor(frac))
+        
         if newValue == idBefore.value:
             # Alter the extension
-            newExt = int(numpy.floor(frac * 10))
-            if newExt == idBefore.extension:
-                # We have a serious problem
-                raise RuntimeError("ERROR: pSNA() :_ siteIDGen() Ran out of address space in segment")
-            return SiteID(idBefore.watershed,newValue,newExt)
+            
+            unitExt = unitDist / 100
+            newExt = int(numpy.floor(leng / unitExt))
+            if not idBefore.extension is None:            
+                newExt += idBefore.extension
+            if newExt >= 99:
+                # You should have decremented the value, mathematically
+                newValue -= 1
+                return SiteID(idBefore.watershed,newValue)
+            if newExt == idBefore.extension:                
+                # Add one to the previous extension and try
+                return SiteID(idBefore.watershed,newValue,idBefore.extension + 1)             
+            else:
+                return SiteID(idBefore.watershed,newValue,newExt)
         else:
             return SiteID(idBefore.watershed,newValue)
     #---------------------------------------------------------------------
@@ -461,6 +471,8 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
         # Pop out the tuple
         t = queue.pop(0)
         u = t[0]
+        
+
         if t[2] is None:
             # Assume we are at start
             distAccum += 0
@@ -475,7 +487,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
                 
         lifechoices.sort(key= lambda conTup1: conTup1[2].thisAndUpstream,reverse=False)
         # Add these future explorations into the queue in order
-        if len(cs) == 3:
+        if len(cs) > 1:
             # Confluence, append to the begining of queue
             # but preserve the order of lifechoices in the queue as well
             iIns = 0
@@ -506,8 +518,9 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/LoopTest001-NHDSubset.json")
+    dictt = importJSON("Data/TrickyLoops001.json")
     net = isolateNet(dictt)    
+    #net.unitLength = 0.1 # km
     sinks = calculateSink(net)
     #removeUseless(net)
     assert(len(sinks) == 1)
