@@ -4,7 +4,7 @@ if __name__ == "__main__":
     dictt = CS.importJSON("../Data/LoopTest001-NHDSubset.json")
     net = CS.isolateNet(dictt)    
     sinks = CS.calculateSink(net)
-    CS.removeUseless(net)
+    # CS.removeUseless(net) When conducting loops do NOT remove these
     assert(len(sinks) == 1)
     faucets = CS.calculateFaucets(net)
     CS.calculateUpstreamDistances(net,faucets)

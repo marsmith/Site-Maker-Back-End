@@ -305,6 +305,8 @@ def calculateUpstreamDistances(net,faucets):
     queue = list(faucets)
     while len(queue) >= 1:
         u = queue.pop(0)
+        if u.id == 15:
+            print("HI")
         totalUp = 0
         totalDown = 0
         cs = u.connectedSites()
@@ -455,7 +457,8 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
                 queue.append(cs[0])
         else:
             # INVALID NODE
-            raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
+            #raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
+            pass
         if t[2] is None:
             u.assignedID = maxDownstreamID
             idNext = u.assignedID
@@ -470,10 +473,10 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/SmallNet001.json")
+    dictt = importJSON("Data/LoopTest001-NHDSubset.json")
     net = isolateNet(dictt)    
     sinks = calculateSink(net)
-    removeUseless(net)
+    #removeUseless(net)
     assert(len(sinks) == 1)
     faucets = calculateFaucets(net)
     calculateUpstreamDistances(net,faucets)
