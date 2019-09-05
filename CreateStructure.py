@@ -90,13 +90,23 @@ class Site(object):
         if flC == None:
             self.flowsCon = []
         self.assignedID = -1 # This is what is assigned via algorithm
-    
+        self.pendingUpstream = -1
     def __eq__(self,other):
         return self.id == other.id
     def __lt__(self,other):
         return self.id < other.id
     def __gt__(self,other):
         return self.id > other.id
+    
+    def calculatePendingUpstream(self):
+        cs = self.connectedSites()     
+        cntr = 0   
+        for e in cs:
+            if e[1] == UPSTREAM_CON:
+                cntr += 1
+                
+        self.pendingUpstream = cntr
+
     def hasAssignedIDEquality(self,other):
         return self.assignedID == other.assignedID
     def hasPositionalEquality(self,other):
@@ -297,6 +307,11 @@ def calculateFaucets(net):
             faucets.append(s)
     return faucets
 
+def setupSiteSafety(net):
+    for s in net.siteTable:
+        s.calculatePendingUpstream()
+
+
 '''
 Recalculates the upstream distances for a network starting from a sink
 '''
@@ -305,11 +320,25 @@ def calculateUpstreamDistances(net,faucets):
     queue = list(faucets)
     while len(queue) >= 1:
         u = queue.pop(0)
-        if u.id == 15:
-            print("HI")
+        cs = u.connectedSites()
+        cntr = 0
+        for con in cs:
+            if con[1] == UPSTREAM_CON:
+                cntr += 1
+                if con[0].pendingUpstream == 0:
+                    cntr -= 1
+        u.pendingUpstream = cntr
+
+
+        if u.pendingUpstream > 0:
+            # This site is not ready for assignment
+            # Re-add it to the queue at the end
+            queue.append(u)
+            continue
+
         totalUp = 0
         totalDown = 0
-        cs = u.connectedSites()
+        
         dcon = None
         if len(cs) == 1:
             # This is a true faucet
@@ -333,6 +362,7 @@ def calculateUpstreamDistances(net,faucets):
                     if entry[0] not in queue:
                         queue.append(entry[0])
                 else:
+                   
                     totalUp += entry[2].thisAndUpstream
             totalDown += totalUp
             if dcon is None:
@@ -478,6 +508,7 @@ if __name__ == "__main__":
     sinks = calculateSink(net)
     #removeUseless(net)
     assert(len(sinks) == 1)
+    setupSiteSafety(net)
     faucets = calculateFaucets(net)
     calculateUpstreamDistances(net,faucets)
     net.recalculateTotalLength()
