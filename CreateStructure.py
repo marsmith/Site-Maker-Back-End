@@ -329,7 +329,8 @@ def calculateUpstreamDistances(net,faucets):
                     cntr -= 1
         u.pendingUpstream = cntr
 
-
+        if u.id == 32:
+            print("hey")
         if u.pendingUpstream > 0:
             # This site is not ready for assignment
             # Re-add it to the queue at the end
@@ -353,14 +354,16 @@ def calculateUpstreamDistances(net,faucets):
             if cs[0][0] not in queue:
                 queue.append(cs[0][0])
         else:
+            
             for entry in cs:
                 if entry[1] == DOWNSTREAM_CON:
-                    # add to totalDown
-                    totalDown += entry[2].length
-                    dcon = entry[2]
-                    # Append downstream site if not already in the queue
-                    if entry[0] not in queue:
-                        queue.append(entry[0])
+                    if dcon is None:
+                        # add to totalDown
+                        totalDown += entry[2].length
+                        dcon = entry[2]
+                        # Append downstream site if not already in the queue
+                        if entry[0] not in queue:
+                            queue.append(entry[0])
                 else:
                    
                     totalUp += entry[2].thisAndUpstream
