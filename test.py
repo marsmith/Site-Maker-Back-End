@@ -69,6 +69,7 @@ class TestPrecompiler(unittest.TestCase):
         confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
         print("Breakpoint")
+        
 
     def test_loop002(self):
         netTup = self.verifyImport('Data/LoopTest001-NHDSubset.json')

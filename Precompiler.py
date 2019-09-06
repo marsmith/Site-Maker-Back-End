@@ -148,7 +148,28 @@ class Site(object):
             elif ds == self:
                 csl.append((us,UPSTREAM_CON,f))
         return csl
-    
+    def safeGetUpstream(self):
+        up = self.getUpstream()
+        assert(len(up) == 1)
+        return up[0]
+    def safeGetDownstream(self):
+        down = self.getDownstream()
+        assert(len(down) == 1)
+        return down[0]
+    def getUpstream(self):
+        ups = []
+        cs = self.connectedSites()
+        for con in cs:
+            if con[1] == UPSTREAM_CON:
+                ups.append(con[0])
+        return ups
+    def getDownstream(self):
+        down = []
+        cs = self.connectedSites()
+        for con in cs:
+            if con[1] == DOWNSTREAM_CON:
+                down.append(con[0])
+        return down
     __repr__ = __str__
 
 DOWNSTREAM_CON = 1
@@ -160,17 +181,36 @@ and length attributes as well as reference to which sites are the
 endpoints (these should be found in the sitesTable of the Network() object)
 '''
 class Flow(object):
-    def __init__(self,id,startSite,endSite,length,reachCode = -1):
+    def __init__(self,id,startSite,endSite,length,reachCode = -1,name=None):
         self.upstreamSite = startSite
         self.downstreamSite = endSite
         self.id  = id
         self.reachCode = reachCode
+        self.name = name
         self.length = length
         self.thisAndUpstream = self.length # This and upstream length
+        self.unadressable = False # If a flow leads to a site which has already been ID'd, it must be part of the closing flow of a loop
+                                # It has no allocated address space and must be ignored
     def __lt__(self,other):
-        return self.length < other.length
+        return self.hasHigherPriority(other)
+    def hasHigherPriority(self,otherFlow):
+        # Returns true if this is
+        if self.name is None:
+            if otherFlow.name is None:
+                # Compare based on .thisAndUpstream
+                return self.thisAndUpstream < otherFlow.thisAndUpstream
+            else:
+                return False # Other has higher priority bc it is named
+        else:
+            if otherFlow.name is None:
+                return True # Self is named and other is not
+            else:
+                # Both are named, go by distance
+                return self.thisAndUpstream < otherFlow.thisAndUpstream
+    def __le__(self,other):
+        return self.hasHigherPriority(other) or self.__eq__(other)
     def __gt__(self,other):
-        return self.length > other.length
+        return not self.__le__(other) 
     def __eq__(self,other):
         return self.reachCode == other.reachCode or self.id == other.id
     def __str__(self):
@@ -226,7 +266,7 @@ Isolate a network from a geoJSON dictionary
 Will consolodate the network upon creation to save
 time
 '''
-def isolateNet(jsonDict):
+def isolateNet(jsonDict,checkName=False):
     fList = jsonDict["features"]
     linesList = []
     sitesList = []
@@ -239,6 +279,15 @@ def isolateNet(jsonDict):
         theID = geomObj['properties']['OBJECTID']
         rc = geomObj['properties']['ReachCode']
         length = geomObj['properties']['LengthKM']
+
+        if checkName:
+            name = str(geomObj['properties']['GNIS_Name'])
+            # If name is blank
+            if len(name.strip()) == 0:
+                name = None
+        else:
+            name = None
+
         upSite = None
         downSite = None
         if geomObj['geometry']['type'] == "MultiLineString":
@@ -257,8 +306,8 @@ def isolateNet(jsonDict):
                 if downGood == downSite:
                     siteCounter += 1                
                     sitesList.append(downSite)
-
-                fl2Add = Flow(theID,upGood,downGood,length,rc)    
+                
+                fl2Add = Flow(theID,upGood,downGood,length,rc,name)    
                 upGood.addFlow(fl2Add)
                 downGood.addFlow(fl2Add)                
                 linesList.append(fl2Add)
@@ -276,7 +325,7 @@ def isolateNet(jsonDict):
                 sitesList.append(downSite)
 
             
-            fl2Add = Flow(theID,upGood,downGood,length,rc)    
+            fl2Add = Flow(theID,upGood,downGood,length,rc,name)    
             upGood.addFlow(fl2Add)
             downGood.addFlow(fl2Add)            
             linesList.append(fl2Add)
@@ -447,8 +496,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
         newValue = int(idBefore.value - numpy.floor(frac))
         
         if newValue == idBefore.value:
-            # Alter the extension
-            
+            # Alter the extension            
             unitExt = unitDist / 100
             newExt = int(numpy.floor(leng / unitExt))
             if not idBefore.extension is None:            
@@ -478,9 +526,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
     while len(queue) >= 1:
         # Pop out the tuple
         t = queue.pop(0)
-        u = t[0]
-        
-
+        u = t[0]    
         if t[2] is None:
             # Assume we are at start
             distAccum += 0
@@ -492,8 +538,11 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             if theCon[1] == UPSTREAM_CON and theCon[0].assignedID < 0:
                 # The connection is upstream and has not been assigned yet
                 lifechoices.append(theCon)
-                
-        lifechoices.sort(key= lambda conTup1: conTup1[2].thisAndUpstream,reverse=False)
+            elif theCon[1] == UPSTREAM_CON:
+                # This has been assigned already, seems like we are on a loop
+                theCon[2].unadressable = True # Designate that this should not be allowed for use
+                print("Found Unadressable Flow sector: {0}".format(theCon[2]))
+        lifechoices.sort(key= lambda conTup1: conTup1[2],reverse=False)
         # Add these future explorations into the queue in order
         if len(cs) > 1:
             # Confluence, append to the begining of queue
@@ -529,6 +578,7 @@ def navigateToNearestConfluence(net,site):
     if not site in net.siteTable:
         raise RuntimeWarning("WARNING navigate_nearestConfluence() failed; site not in siteTable")
     s = site
+    startSite = site
     flag = True
     rtrnFlow = None
     while flag:
@@ -537,7 +587,7 @@ def navigateToNearestConfluence(net,site):
         for conTup in cs:
             if conTup[1] == DOWNSTREAM_CON:
                 dsCons.append(conTup)
-        if len(dsCons) != 1 or len(cs) == 3:
+        if len(dsCons) != 1 or (len(cs) == 3 and  not s == startSite):
             # We are at the confluence or have reached the end.
             return rtrnFlow
         else:
@@ -551,33 +601,34 @@ Pre-requisite: Run algorithm to asign ID's first
 def confluenceReferenceIDAssign(net,faucets = None):
     if faucets is None:
         faucets = calculateFaucets(net)
+
     for s in faucets:
-        f = navigateToNearestConfluence(net,s)
-        confluence = f.downstreamSite
-        conCons = confluence.connectedSites()
-        # Find the other upstream of the confluence
-        otherUpstream = None
-        for sc in conCons:
-            if sc[1] == UPSTREAM_CON:
-                if sc[2] != f:
-                    otherUpstream = sc[2]
-        
-        # If there is none, we dont need to do reference ID assign
-        if otherUpstream is None:
-            continue # We dont have to assign a downwards opening confluence
-        if confluence.downwardRefID is None:
-            if f.thisAndUpstream < otherUpstream.thisAndUpstream:
-                confluence.downwardRefID = s.assignedID
+        fl = True
+        investigate = s
+        if s.downwardRefID is None:
+            upstreamMinID = s.assignedID
         else:
-            # Reference ID was already assigned; there is an error
-            continue
+            upstreamMinID = s.downwardRefID        
+        while fl:
+            cs = investigate.connectedSites()
+            if len(cs) == 2:
+                # We are at an in between ---<#>---
+                investigate = investigate.safeGetDownstream()
+
+                pass
+            elif len(cs) == 3:
+                # We are at a confluence (shrinking)_>- or -<__(expanding)
+                pass
+            elif len(cs) == 1:
+                # We have reached the sink
+                fl = False
 # -------------------------------------------------------
 # MAIN                  MAIN                    MAIN
 # -------------------------------------------------------
 
 if __name__ == "__main__":
     dictt = importJSON("Data/TrickyLoops001.json")
-    net = isolateNet(dictt)    
+    net = isolateNet(dictt,True)    
     #net.unitLength = 0.1 # km
     sinks = calculateSink(net)
     #removeUseless(net)
@@ -588,6 +639,6 @@ if __name__ == "__main__":
     net.recalculateTotalLength()
     
     pSNA(net,SiteID(1001,9999,None),sinks[0])
-    confluenceReferenceIDAssign(net,faucets)
+    #confluenceReferenceIDAssign(net,faucets)
     FileIO.exportNetwork(net,"TrickyLoop","./Exports/")
 
