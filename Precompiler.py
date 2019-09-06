@@ -97,7 +97,7 @@ class Site(object):
             self.flowsCon = []
         self.assignedID = -1 # This is what is assigned via algorithm
         self.pendingUpstream = -1
-        self.downstreamID = None # This is what is stored as reference to the next downstream ID
+        self.downwardRefID = None # This is what is stored as reference to the next downstream ID
                                     # For resolving assignments in the Plotter
     def __eq__(self,other):
         return self.id == other.id
@@ -521,8 +521,30 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             u.downstreamID = idNext # The previous downstream ID is this
             idNext = newID
 
-
-
+'''
+Will navigate to the nearest confluence. Returns the last flow which allowed reaching the
+confluence. 
+'''
+def navigateToNearestConfluence(net,site):
+    if not site in net.siteTable:
+        raise RuntimeWarning("WARNING navigate_nearestConfluence() failed; site not in siteTable")
+    s = site
+    flag = True
+    rtrnFlow = None
+    while flag:
+        cs = s.connectedSites()
+        dsCons = []
+        for conTup in cs:
+            if conTup[1] == DOWNSTREAM_CON:
+                dsCons.append(conTup)
+        if len(dsCons) != 1 or len(cs) == 3:
+            # We are at the confluence or have reached the end.
+            return rtrnFlow
+        else:
+            # Keep progressing
+            rtrnFlow = dsCons[0][2]
+            s = dsCons[0][0]
+    
 ''' Will go back and assign reference ID's for lowest downstream 
 Pre-requisite: Run algorithm to asign ID's first
 '''
@@ -530,18 +552,35 @@ def confluenceReferenceIDAssign(net,faucets = None):
     if faucets is None:
         faucets = calculateFaucets(net)
     for s in faucets:
-
-
+        f = navigateToNearestConfluence(net,s)
+        confluence = f.downstreamSite
+        conCons = confluence.connectedSites()
+        # Find the other upstream of the confluence
+        otherUpstream = None
+        for sc in conCons:
+            if sc[1] == UPSTREAM_CON:
+                if sc[2] != f:
+                    otherUpstream = sc[2]
+        
+        # If there is none, we dont need to do reference ID assign
+        if otherUpstream is None:
+            return # We dont have to assign a downwards opening confluence
+        if confluence.downwardRefID is None:
+            if f.thisAndUpstream < otherUpstream.thisAndUpstream:
+                confluence.downwardRefID = s.assignedID
+        else:
+            # Reference ID was already assigned; there is an error
+            raise RuntimeError("ERROR confluenceReferenceIDAssign(): Reference ID for lowest upstream ID from this confluence double assign")
 # -------------------------------------------------------
 # MAIN                  MAIN                    MAIN
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/TrickyLoops001.json")
+    dictt = importJSON("Data/SmallNet001.json")
     net = isolateNet(dictt)    
     #net.unitLength = 0.1 # km
     sinks = calculateSink(net)
-    #removeUseless(net)
+    removeUseless(net)
     assert(len(sinks) == 1)
     setupSiteSafety(net)
     faucets = calculateFaucets(net)
@@ -549,5 +588,6 @@ if __name__ == "__main__":
     net.recalculateTotalLength()
 
     pSNA(net,SiteID(1001,9999,None),sinks[0])
+    confluenceReferenceIDAssign(net,faucets)
     print(net)
 
