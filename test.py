@@ -57,7 +57,7 @@ class TestPrecompiler(unittest.TestCase):
         netTup = self.verifyImport('Data/SmallNet001.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        confluenceReferenceIDAssign(net,faucets)
+        confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
         
     ''' Test on TrickyLoops001; 
@@ -66,15 +66,15 @@ class TestPrecompiler(unittest.TestCase):
         netTup = self.verifyImport('Data/TrickyLoops001.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        confluenceReferenceIDAssign(net,faucets)
+        confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
         print("Breakpoint")
-        
+
     def test_loop002(self):
         netTup = self.verifyImport('Data/LoopTest001-NHDSubset.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        confluenceReferenceIDAssign(net,faucets)
+        confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
 
 

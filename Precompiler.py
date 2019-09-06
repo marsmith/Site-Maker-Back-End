@@ -564,7 +564,7 @@ def confluenceReferenceIDAssign(net,faucets = None):
         
         # If there is none, we dont need to do reference ID assign
         if otherUpstream is None:
-            return # We dont have to assign a downwards opening confluence
+            continue # We dont have to assign a downwards opening confluence
         if confluence.downwardRefID is None:
             if f.thisAndUpstream < otherUpstream.thisAndUpstream:
                 confluence.downwardRefID = s.assignedID
