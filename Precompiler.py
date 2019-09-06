@@ -97,6 +97,8 @@ class Site(object):
             self.flowsCon = []
         self.assignedID = -1 # This is what is assigned via algorithm
         self.pendingUpstream = -1
+        self.downstreamID = None # This is what is stored as reference to the next downstream ID
+                                    # For resolving assignments in the Plotter
     def __eq__(self,other):
         return self.id == other.id
     def __lt__(self,other):
@@ -439,7 +441,7 @@ unit length (1km by default)
 WTRSHD  UNIQUE
 '''
 def pSNA(net,maxDownstreamID,sinkSite = None):
-    def siteIDGen(idBefore,totalAccum,leng,unitDist):
+    def alg(idBefore,totalAccum,leng,unitDist):
         
         frac = leng / unitDist        
         newValue = int(idBefore.value - numpy.floor(frac))
@@ -514,9 +516,11 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             u.assignedID = maxDownstreamID
             idNext = u.assignedID
         else:
-            newID = siteIDGen(idNext,distAccum,t[2].length,net.unitLength)        
+            newID = alg(idNext,distAccum,t[2].length,net.unitLength)        
             u.assignedID = newID
+            u.downstreamID = idNext # The previous downstream ID is this
             idNext = newID
+
 
 
 # -------------------------------------------------------
