@@ -570,7 +570,7 @@ def confluenceReferenceIDAssign(net,faucets = None):
                 confluence.downwardRefID = s.assignedID
         else:
             # Reference ID was already assigned; there is an error
-            raise RuntimeError("ERROR confluenceReferenceIDAssign(): Reference ID for lowest upstream ID from this confluence double assign")
+            continue
 # -------------------------------------------------------
 # MAIN                  MAIN                    MAIN
 # -------------------------------------------------------
