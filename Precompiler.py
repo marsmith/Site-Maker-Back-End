@@ -67,11 +67,17 @@ class SiteID(object):
                 return self.watershed < other.watershed
         else:
             raise RuntimeError("ERROR: SiteID __lt__ secondary argument not compatible!")
-        
+    def __le__(self,other):
+        return self < other or self.__eq__(other)
+    def __ge__(self,other):
+        return self > other or self.__eq__(other)
     def __gt__(self,other):
         return not self <= other
     def __eq__(self,other):
-        return self.fullID == other.fullID
+        if isinstance(other,int):
+            return self.fullID == other
+        else:
+            return self.fullID == other.fullID
     __repr__ = __str__
 
 
