@@ -2,7 +2,7 @@ import json
 import numpy
 import sys
 import Dijkstra
-
+import FileIO
 degree_sign= u'\N{DEGREE SIGN}'
 
 '''
@@ -576,18 +576,18 @@ def confluenceReferenceIDAssign(net,faucets = None):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/SmallNet001.json")
+    dictt = importJSON("Data/TrickyLoops001.json")
     net = isolateNet(dictt)    
     #net.unitLength = 0.1 # km
     sinks = calculateSink(net)
-    removeUseless(net)
+    #removeUseless(net)
     assert(len(sinks) == 1)
     setupSiteSafety(net)
     faucets = calculateFaucets(net)
     calculateUpstreamDistances(net,faucets)
     net.recalculateTotalLength()
-
+    
     pSNA(net,SiteID(1001,9999,None),sinks[0])
     confluenceReferenceIDAssign(net,faucets)
-    print(net)
+    FileIO.exportNetwork(net,"TrickyLoop","./Exports/")
 
