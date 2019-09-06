@@ -523,6 +523,15 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
 
 
 
+''' Will go back and assign reference ID's for lowest downstream 
+Pre-requisite: Run algorithm to asign ID's first
+'''
+def confluenceReferenceIDAssign(net,faucets = None):
+    if faucets is None:
+        faucets = calculateFaucets(net)
+    for s in faucets:
+
+
 # -------------------------------------------------------
 # MAIN                  MAIN                    MAIN
 # -------------------------------------------------------
