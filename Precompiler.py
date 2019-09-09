@@ -588,6 +588,4 @@ if __name__ == "__main__":
     net.recalculateTotalLength()
     
     pSNA(net,SiteID(1001,9999,None),sinks[0])
-    confluenceReferenceIDAssign(net,faucets)
-    FileIO.exportNetwork(net,"TrickyLoop","./Exports/")
 
