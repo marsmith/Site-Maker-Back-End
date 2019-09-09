@@ -1,6 +1,7 @@
 from Precompiler import *
 import unittest
 import numpy
+from Visualizer import *
 
 
 ''' The best way to do testing will still involve 
@@ -10,6 +11,18 @@ human verification, but this ensures there are no minor bugs
 EPSILON = 0.01
 
 class TestPrecompiler(unittest.TestCase):
+    def create_files(self, net):
+        fileobject = open("Sites.txt", "w")
+        for site in net.siteTable:
+            string = "%d, %f, %f, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID))
+            fileobject.write(string)
+        fileobject.close()
+        fileobject = open("Flows.txt", "w")
+        for flow in net.flowTable:
+            string = "%d, %d, %f, %f\n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream)
+            fileobject.write(string)
+        fileobject.close()
+
     def verifySink(self,net):
         sinks = calculateSink(net)
         assert(len(sinks)) == 1
@@ -58,7 +71,9 @@ class TestPrecompiler(unittest.TestCase):
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
         self.verifyAllNumbered(netTup[0])
-
+        self.create_files(netTup[0])
+        create_visuals("SmallNet001")
+    
     ''' Test on TrickyLoops001; 
     '''
     def test_loop001(self):
@@ -66,12 +81,17 @@ class TestPrecompiler(unittest.TestCase):
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
         self.verifyAllNumbered(netTup[0])
+        self.create_files(netTup[0])
+        create_visuals("TrickyLoops001")
+        
 
     def test_loop002(self):
         netTup = self.verifyImport('Data/LoopTest001-NHDSubset.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
         self.verifyAllNumbered(netTup[0])
+        self.create_files(netTup[0])
+        create_visuals("LoopTest001-NHDSubset")
 
 
 
