@@ -3,6 +3,8 @@ import plotly
 from  plotly import graph_objects as go
 from plotly.offline import download_plotlyjs, plot
 import networkx as nx
+from Precompiler import *
+import webbrowser
 
 def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
     L=len(Xn)
@@ -11,17 +13,48 @@ def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
     annotations = []
     for k in range(L):
         annotations.append(dict(text=labels[k], 
-                                x=Xn[k]+0.00015, 
-                                y=Yn[k]+0.00015,#this additional value is chosen by trial and error
+                                x=Xn[k]+0.0001, 
+                                y=Yn[k]+0.0001,#this additional value is chosen by trial and error
                                 xref='x1', yref='y1',
                                 font=dict(color= font_color, size=font_size),
                                 showarrow=False)
                           )
     return annotations  
 
-def create_visuals(test_name):
-    f = open("Sites.txt", 'r')
+def create_visuals(test_name, isRealSites = False):
+    realSites = []
+    Xr = []
+    Yr = []
+    siteLabels = []
+    if isRealSites:
+        f = open("RealSites.txt", 'r')
+        temp_sites = f.read()
+        temp_sites = temp_sites.split("\n")
+        temp_sites.pop()
+        realSites = []
+        for site in temp_sites:
+            site = site.split(", ")
+            site[0] = int(site[0])
+            site[1] = float(site[1])
+            site[2] = float(site[2])
+            realSites.append(site)
+        
+        Xr = [realSites[k][1] for k in range(len(realSites))]
+        Yr = [realSites[k][2] for k in range(len(realSites))]
+        siteLabels = [realSites[k][0] for k in range(len(realSites))]
 
+
+    realSite_trace = go.Scatter(
+        x=Xr, y=Yr,
+        mode='markers',
+        text = siteLabels,
+        hoverinfo = 'text',
+        marker=dict(
+            color = 'red',
+            size=7,
+            line_width=2))
+
+    f = open("Sites.txt", 'r')
     temp_sites = f.read()
     temp_sites = temp_sites.split("\n")
     temp_sites.pop()
@@ -131,7 +164,55 @@ def create_visuals(test_name):
         plot_bgcolor='#bad7ff', #set background color            
         )
 
-    fig = dict(data=[node_trace, edge_trace, midpoint_trace], layout=layout)
+    fig = dict(data=[node_trace, edge_trace, midpoint_trace, realSite_trace], layout=layout)
     fig['layout'].update(annotations=make_annotations(Xn, Yn, labels))
     plot(fig)
 
+def createWebViewer(filepath, netTup, real_sites):
+    newJSON = importJSON(filepath)
+    for site in netTup[0].siteTable:
+        new_feat = dict()
+        new_feat["type"] = "Feature"
+        new_feat["id"] = site.id
+
+        propDict = dict()
+        propDict["id"] = str(site.id)
+        propDict["assigned_id"] = str(site.assignedID)
+
+        geoDict = dict()
+        geoDict["type"] = "Point"
+        coords = []
+        coords.append(site.latLong.srcLat)
+        coords.append(site.latLong.srcLong)
+        geoDict["coordinates"] = coords
+
+        new_feat["properties"] = propDict
+        new_feat["geometry"] = geoDict
+        newJSON["features"].append(new_feat)
+    
+    realJSON = importJSON(real_sites)
+    fList = realJSON["features"]
+
+    for geomObj in fList:
+        new_feat = dict()
+        new_feat["type"] = "Feature"
+
+        propDict = dict()
+        propDict["site_no"] = geomObj['properties']['site_no']
+        propDict["real_site"] = "True"
+
+        geoDict = dict()
+        geoDict["type"] = "Point"
+        geoDict["coordinates"] = geomObj["geometry"]["coordinates"]
+
+        new_feat["properties"] = propDict
+        new_feat["geometry"] = geoDict
+        newJSON["features"].append(new_feat)
+
+
+    with open("jsonViewer/data.json", 'w') as fp:
+        json.dump(newJSON, fp)
+
+    webbrowser.open('http://localhost:3000/jsonViewer/index.html')
+
+    

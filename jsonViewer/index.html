@@ -1,0 +1,114 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+	<base target="_parent">
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<title>Site Maker</title>
+
+	<!-- CSS -->
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+	integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+	crossorigin=""/>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" />
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.css" />
+	<link rel="stylesheet" href="css/style.css" />
+	<link rel="stylesheet" type="text/css" href="css/common.css">
+
+	<style>
+		.clock {
+			width: 150px;
+			text-align: center;
+			position: absolute;
+			border: 1px solid white;
+			border-radius: 5px;
+		}
+
+		#theInfo {
+			color:white;
+			background-color: #34c3eb;
+		}
+	</style>
+
+	<!-- JS -->
+	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+  integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+  crossorigin=""></script>
+	<script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script src="js/moment.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	<script src="js/main.js"></script>
+</head>
+
+<body id="body">
+	<div id='topnav'>
+		<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+            <div class="navbar-header">
+                <button id="aboutButton" type="button" class="btn btn-info navbar-btn pull-right" onclick="$('#aboutModal').modal('show'); return false;"><i class="fa fa-info-circle"></i><span class="hidden-xs">&nbsp;&nbsp;About</span></button>
+				<button id="legendButton" type="button" class="btn btn-info navbar-btn pull-right"><i class="fa fa-list-ul"></i><span class="hidden-xs">&nbsp;&nbsp;Legend</span></button>
+				<button id="coordButton" type="button" class="btn btn-info navbar-btn pull-right" onclick="$('#coordModal').modal('show'); return false;"><i class="fa fa-map-marker" aria-hidden="true"></i><span class="hidden-xs">&nbsp;&nbsp;Enter Coords Manually</span></button>
+                <a class="navbar-brand" href="https://www.usgs.gov"><img class='hidden-xs' style='display:inline-block;' src="images/usgs_logo.png" /><img class='visible-xs' style='display:inline-block;' src="images/usgs_logo_small.png" /><span class='hidden-xs' style='font-size:20px;display:inline-block;'>&nbsp;&nbsp;Site Maker</span><span class='visible-xs' style='font-size:9px;display:inline-block;'>Site Maker</span></a>
+            </div>
+		</div>
+	</div>
+
+	<div id="theInfo" class="clock leaflet-control"></div>
+	<div id="map"></div>
+
+
+	<!-- BEGIN USGS Footer Template -->
+	<div id="usgsfooter">
+
+		<div class="navbar navbar-inverse navbar-fixed-bottom visible-tablet-mobile" role="navigation">
+			<div class="navbar-header">
+
+				<span class='visible-tablet-mobile'>
+	<p id="usgsfooterbar">
+	<span class='hidden-xs'>
+		<a href="https://www.usgs.gov/laws/accessibility.html" target="_blank" title="Accessibility Policy (Section 508)">Accessibility</a>
+		<a href="https://www.usgs.gov/foia/" target="_blank" title="Freedom of Information Act">FOIA</a>
+		<a href="https://www.usgs.gov/laws/privacy.html" target="_blank" title="Privacy policies of the U.S. Geological Survey.">Privacy</a>
+		<a href="https://www.usgs.gov/laws/policies_notices.html" target="_blank" title="Policies and notices that govern information posted on USGS Web sites.">Policies and Notices</a>
+		<a href="https://usa.gov/" target="_blank" title="USA.gov" style="float:right;">USA.gov</a>
+	</span>
+				<span class='visible-xs' style='font-size: 6px;'>
+		<a href="https://www.usgs.gov/laws/accessibility.html" target="_blank" title="Accessibility Policy (Section 508)">Accessibility</a>
+		<a href="https://www.usgs.gov/foia/" target="_blank" title="Freedom of Information Act">FOIA</a>
+		<a href="https://www.usgs.gov/laws/privacy.html" target="_blank" title="Privacy policies of the U.S. Geological Survey.">Privacy</a>
+		<a href="https://www.usgs.gov/laws/policies_notices.html" target="_blank" title="Policies and notices that govern information posted on USGS Web sites.">Policies and Notices</a>
+		<a href="https://usa.gov/" target="_blank" title="USA.gov" style="float:right;">USA.gov</a>
+	</span>
+				</p>
+				</span>
+
+				<span class='visible-tablet-mobile'>
+	<p id="usgsfootertext" style="font-size: 0;position: relative;">
+			<!--<span class='hidden-xs'><span class='visible-tablet-mobile'><a href="https://usa.gov/"><img src="images/footer_graphic_usagov.jpg" alt="USA.gov logo" title="USAGov: Government Made Easy" width="90" height="26" /></a></span></span>
+				<span class='visible-xs'><span class='visible-tablet-mobile'><a href="https://usa.gov/"><img src="images/footer_graphic_usagov.jpg" alt="USA.gov logo" title="USAGov: Government Made Easy" width="45" height="13" /></a></span></span>-->
+
+				<span style="position: absolute;top: 50%;margin-top:-10.5px;right:7px;"><iframe src="https://www.facebook.com/plugins/like.php?href=https://www.facebook.com/USGSNewYork&width=106&layout=button_count&action=like&size=small&show_faces=false&share=true&height=46&appId=422636224532398" width="125" height="25" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe></span>
+
+				<span class='hidden-xs'><span class='visible-tablet-mobile' style='font-size:12px; color:white'><a href="https://www.doi.gov/" style='font-size:12px; color:white'>U.S. Department of the Interior</a> | <a href="https://www.usgs.gov/" style='font-size:12px; color:white'>U.S. Geological Survey</a><br /></span></span>
+				<span class='visible-xs'><span class='visible-tablet-mobile' style='font-size:6px; color:white'><a href="https://www.doi.gov/" style='font-size:6px; color:white'>U.S. Department of the Interior</a> | <a href="https://www.usgs.gov/" style='font-size:6px; color:white'>U.S. Geological Survey</a><br /></span></span>
+
+				<span class='hidden-xs'><span class='visible-tablet-mobile' style='font-size:12px; color:white'>URL: <a href="https://ny.water.usgs.gov/maps/nowcast/" title="https://ny.water.usgs.gov/maps/nowcast/" style='font-size:12px; color:white'>https://ny.water.usgs.gov/maps/nowcast/</a><br /></span></span>
+				<span class='visible-xs'><span class='visible-tablet-mobile' style='font-size:6px; color:white'>URL: <a href="https://ny.water.usgs.gov/maps/nowcast/" title="https://ny.water.usgs.gov/maps/nowcast/" style='font-size:6px; color:white'>https://ny.water.usgs.gov/maps/nowcast/</a><br /></span></span>
+
+				<span class='hidden-xs'><span class='visible-tablet-mobile' style='font-size:12px; color:white'>Page Contact Information: <a href="mailto:marsmith@usgs.gov" style='font-size:12px; color:white' target="_blank">Website Manager</a><br /></span></span>
+				<span class='visible-xs'><span class='visible-tablet-mobile' style='font-size:6px; color:white'>Page Contact Information: <a href="mailto:marsmith@usgs.gov" style='font-size:6px; color:white' target="_blank">Website Manager</a><br /></span></span>
+
+				<span class='hidden-xs'><span class='visible-tablet-mobile' style='font-size:12px; color:white'>Page Last Modified: Thursday, May 9, 2019</span></span>
+				<span class='visible-xs'><span class='visible-tablet-mobile' style='font-size:6px; color:white'>Page Last Modified: Thursday, May 9, 2019</span></span>
+				</p>
+				</span>
+			</div>
+		</div>
+	</div>
+	<!-- END USGS Footer Template -->
+</body>
+</html>
