@@ -21,39 +21,7 @@ def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
                           )
     return annotations  
 
-def create_visuals(test_name, isRealSites = False):
-    realSites = []
-    Xr = []
-    Yr = []
-    siteLabels = []
-    if isRealSites:
-        f = open("RealSites.txt", 'r')
-        temp_sites = f.read()
-        temp_sites = temp_sites.split("\n")
-        temp_sites.pop()
-        realSites = []
-        for site in temp_sites:
-            site = site.split(", ")
-            site[0] = int(site[0])
-            site[1] = float(site[1])
-            site[2] = float(site[2])
-            realSites.append(site)
-        
-        Xr = [realSites[k][1] for k in range(len(realSites))]
-        Yr = [realSites[k][2] for k in range(len(realSites))]
-        siteLabels = [realSites[k][0] for k in range(len(realSites))]
-
-
-    realSite_trace = go.Scatter(
-        x=Xr, y=Yr,
-        mode='markers',
-        text = siteLabels,
-        hoverinfo = 'text',
-        marker=dict(
-            color = 'red',
-            size=7,
-            line_width=2))
-
+def create_visuals(test_name):
     f = open("Sites.txt", 'r')
     temp_sites = f.read()
     temp_sites = temp_sites.split("\n")
@@ -64,7 +32,8 @@ def create_visuals(test_name, isRealSites = False):
         site[0] = int(site[0])
         site[1] = float(site[1])
         site[2] = float(site[2])
-        site[3] = int(site[3])
+        site[3] = str(site[3])
+        site[4] = str(site[4])
         sites.append(site)
 
 
@@ -115,7 +84,7 @@ def create_visuals(test_name, isRealSites = False):
     Xn = [sites[k][1] for k in range(len(sites))]
     Yn = [sites[k][2] for k in range(len(sites))]
     labels = [sites[k][0] for k in range(len(sites))]
-    node_labels = ["ID: " + str(sites[k][0]) + "\nAssigned ID: " + str(sites[k][3]) for k in range(len(sites))]
+    node_labels = ["ID: " + str(sites[k][0]) + "\nAssigned ID: " + str(sites[k][3]) + "\nDownward Ref ID:" + sites[k][4] for k in range(len(sites))]
 
     node_trace = go.Scatter(
         x=Xn, y=Yn,
@@ -164,7 +133,7 @@ def create_visuals(test_name, isRealSites = False):
         plot_bgcolor='#bad7ff', #set background color            
         )
 
-    fig = dict(data=[node_trace, edge_trace, midpoint_trace, realSite_trace], layout=layout)
+    fig = dict(data=[node_trace, edge_trace, midpoint_trace], layout=layout)
     fig['layout'].update(annotations=make_annotations(Xn, Yn, labels))
     plot(fig)
 

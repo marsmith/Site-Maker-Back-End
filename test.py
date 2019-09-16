@@ -27,7 +27,7 @@ class TestPrecompiler(unittest.TestCase):
     def create_files(self, net):
         fileobject = open("Sites.txt", "w")
         for site in net.siteTable:
-            string = "%d, %f, %f, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID))
+            string = "%d, %f, %f, %s, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
             fileobject.write(string)
         fileobject.close()
         fileobject = open("Flows.txt", "w")
@@ -86,8 +86,8 @@ class TestPrecompiler(unittest.TestCase):
         
         self.verifyAllNumbered(netTup[0])
         self.SiteLoader("Data/snapped-site-test-subset.json")
-        #self.create_files(netTup[0])
-        #create_visuals("SmallNet001")
+        self.create_files(netTup[0])
+        create_visuals("SmallNet001")
         
 
 
