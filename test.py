@@ -83,12 +83,11 @@ class TestPrecompiler(unittest.TestCase):
         netTup = self.verifyImport('Data/SmallNet001.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        confluenceReferenceIDAssign(netTup[0],netTup[2])
+        
         self.verifyAllNumbered(netTup[0])
         self.SiteLoader("Data/snapped-site-test-subset.json")
         #self.create_files(netTup[0])
         #create_visuals("SmallNet001")
-        createWebViewer('Data/SmallNet001.json', netTup, "Data/snapped-site-test-subset.json")
         
 
 
@@ -96,7 +95,7 @@ class TestPrecompiler(unittest.TestCase):
         netTup = self.verifyImport('Data/TrickyLoops001.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        confluenceReferenceIDAssign(netTup[0],netTup[2])
+        
         self.verifyAllNumbered(netTup[0])
         self.create_files(netTup[0])
         #create_visuals("TrickyLoops001")
@@ -106,7 +105,7 @@ class TestPrecompiler(unittest.TestCase):
         netTup = self.verifyImport('Data/LoopTest001-NHDSubset.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        confluenceReferenceIDAssign(netTup[0],netTup[2])
+        
         self.verifyAllNumbered(netTup[0])
         self.create_files(netTup[0])
         #create_visuals("LoopTest001-NHDSubset")

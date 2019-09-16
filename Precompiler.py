@@ -638,32 +638,6 @@ def getLowestUpstreamNumber(net,site):
         
     
 
-
-''' Will go back and assign reference ID's for lowest downstream 
-Pre-requisite: Run algorithm to asign ID's first
-'''
-def confluenceReferenceIDAssign(net,faucets = None):
-    if faucets is None:
-        faucets = calculateFaucets(net)
-    for s in faucets:
-        fl = True
-        investigate = s
-        if s.downwardRefID is None:
-            upstreamMinID = s.assignedID
-        else:
-            upstreamMinID = s.downwardRefID        
-        while fl:
-            cs = investigate.connectedSites()
-            if len(cs) == 2:
-                # We are at an in between ---<#>---
-                investigate = investigate.safeGetDownstream()
-                pass
-            elif len(cs) == 3:
-                # We are at a confluence (shrinking)_>- or -<__(expanding)
-                pass
-            elif len(cs) == 1:
-                # We have reached the sink
-                fl = False
 # -------------------------------------------------------
 # MAIN                  MAIN                    MAIN
 # -------------------------------------------------------
