@@ -1,3 +1,7 @@
 9/4/2019 -- Folder management causes tests to become un-runnable. There is a way to import python files
 outside of current directory but I do not know how :(
 
+9/6/2019 -- confluenceReferenceIDAssign() only works for the outer most confluenceReferenceIDAssign
+            Working on a amethod to fix this
+
+        -- Add naming check to grab the named section over unnamed for the open downstream confluence
