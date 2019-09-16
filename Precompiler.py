@@ -3,6 +3,8 @@ import numpy
 import sys
 import Dijkstra
 import FileIO
+import test
+import Visualizer
 degree_sign= u'\N{DEGREE SIGN}'
 
 '''
@@ -490,11 +492,9 @@ unit length (1km by default)
 WTRSHD  UNIQUE
 '''
 def pSNA(net,maxDownstreamID,sinkSite = None):
-    def alg(idBefore,totalAccum,leng,unitDist):
-        
+    def alg(idBefore,totalAccum,leng,unitDist):        
         frac = leng / unitDist        
-        newValue = int(idBefore.value - numpy.floor(frac))
-        
+        newValue = int(idBefore.value - numpy.floor(frac))        
         if newValue == idBefore.value:
             # Alter the extension            
             unitExt = unitDist / 100
@@ -526,7 +526,13 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
     while len(queue) >= 1:
         # Pop out the tuple
         t = queue.pop(0)
-        u = t[0]    
+        u = t[0]
+        if u.assignedID >= 0:
+            # ID has already been assigned, must mean we just need to grab 
+            # reference ID for this node
+            u.downwardRefID = getLowestUpstreamNumber(net,u)
+            continue
+
         if t[2] is None:
             # Assume we are at start
             distAccum += 0
@@ -546,11 +552,16 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
         # Add these future explorations into the queue in order
         if len(cs) > 1:
             # Confluence, append to the begining of queue
-            # but preserve the order of lifechoices in the queue as well
+            # but preserve the order of lifechoices in the queue as well        
+            # Standard procedure
             iIns = 0
             for conTup in lifechoices:
                 queue.insert(iIns,conTup)
                 iIns += 1
+            refIDTup = (u,None,None)
+            if len(cs) > 2:
+                # 3 way branch; needs reference ID
+                queue.insert(iIns,refIDTup)
         elif len(cs) == 1:
             # Non-Confluence, append to the end of the queue
             # This is to handle special cases such as loops
@@ -594,14 +605,46 @@ def navigateToNearestConfluence(net,site):
             # Keep progressing
             rtrnFlow = dsCons[0][2]
             s = dsCons[0][0]
+
+'''
+Will navigate through the network to find the node at the end of a branch
+by using > operations
+'''
+def navigateFurthestUpstream(net,site):
+    sInvest = site
+    flag = True
+    while flag:
+        cs = sInvest.connectedSites()
+        flup = None        
+        for con in cs:
+            # If the connection is upstream it is pursuable
+            if con[1] == UPSTREAM_CON:                
+                if flup is None:
+                    flup = con[2]
+                else:
+                    if con[2] < flup:
+                        flup = con[2]
+        if flup is None:
+            # We have reached the upmost area on the branch
+            flag = False
+            break
+        sInvest = flup.upstreamSite
+    return sInvest
+        
+def getLowestUpstreamNumber(net,site):
+    return navigateFurthestUpstream(net,site).assignedID
+
+
+        
     
+
+
 ''' Will go back and assign reference ID's for lowest downstream 
 Pre-requisite: Run algorithm to asign ID's first
 '''
 def confluenceReferenceIDAssign(net,faucets = None):
     if faucets is None:
         faucets = calculateFaucets(net)
-
     for s in faucets:
         fl = True
         investigate = s
@@ -614,7 +657,6 @@ def confluenceReferenceIDAssign(net,faucets = None):
             if len(cs) == 2:
                 # We are at an in between ---<#>---
                 investigate = investigate.safeGetDownstream()
-
                 pass
             elif len(cs) == 3:
                 # We are at a confluence (shrinking)_>- or -<__(expanding)
@@ -627,7 +669,7 @@ def confluenceReferenceIDAssign(net,faucets = None):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/TrickyLoops001.json")
+    dictt = importJSON("Data/SmallNet001.json")
     net = isolateNet(dictt,True)    
     #net.unitLength = 0.1 # km
     sinks = calculateSink(net)
@@ -639,4 +681,7 @@ if __name__ == "__main__":
     net.recalculateTotalLength()
     
     pSNA(net,SiteID(1001,9999,None),sinks[0])
+    tp = test.TestPrecompiler()
+    tp.create_files(net)
+    Visualizer.create_visuals("Hello")
 
