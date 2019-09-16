@@ -364,8 +364,7 @@ class Site(object):
             elif ds == self:
                 csl.append((us,UPSTREAM_CON,f))
         return csl
-
-
+    
     def getUpstream(self):
         '''
         Creates a list of all upstream Sites from one Site
@@ -491,28 +490,86 @@ class Flow(object):
         '''
         return not self.__le__(other) 
     def __eq__(self,other):
+        '''
+        Compares this flow to 'other' Flow
+
+        Returns [bool]: True if both Flow's reach codes are the same or have the same ID
+        Precondition: 'other' must be a Flow object
+        '''
         return self.reachCode == other.reachCode or self.id == other.id
     def __str__(self):
+        '''
+        Returns a string representation of the Flow, following this format:
+        Flow <flow #> upstream is {upstreamSite.id}, downstream is {downstreamSite.id}
+        (Note: upstreamSite.id refers to the associative number (0,1,2,3), NOT the SiteID's (10019999,...))
+
+        Returns [string]: String representation
+        '''
         return "Flow <{0}> upstream is {1}, downstream is {2}".format(self.id,self.upstreamSite.id,self.downstreamSite.id)
     __repr__ = __str__
 
 
 class Network(object):
     '''
-    Represents a collection of flows connected at the ends by sites.
+    Description
+    ---------------------------------------------------------------------------
+    Represents a collection of flows connected at the ends by sites and the relationships between each.
+    Organized into two main tables a flow table and a site table (a table here is just a list).
     Keeps track of its total size (length of all flows combined)
+
+    Class Variables
+    ---------------------------------------------------------------------------
+    totalSize [number]: Total length of the Network (length of all Flows). Must be 
+                        Recomputed to be acurate via recalculateTotalLength()
+    flowTable [List(Of Flow)]: The flows (or connections) in the Network
+    siteTable [List(Of Site)]: The sites (or nodes) in the Network
+    unitLength [number]: (IN KM!) How much distance before incrementing what
+                         SiteID value portion should be assigned
+
+    Usage
+    ---------------------------------------------------------------------------
+    (Here is an example of how to run the entire thing with a Network)
+    >>> dictt = importJSON("Data/SmallNet001.json")
+    >>> net = isolateNet(dictt,True)       
+    >>> sinks = calculateSink(net)
+    >>> setupSiteSafety(net)
+    >>> faucets = calculateFaucets(net)
+    >>> calculateUpstreamDistances(net,faucets)
+    >>> net.recalculateTotalLength()
+    >>> pSNA(net,SiteID(1001,9999,None),sinks[0])
     '''
-    def __init__(self,flows,sites):
+    def __init__(self,flows,sites,unitLen = 1):
+        '''
+        Constructs a new Network object
+
+        flows [List(Of Flow)]: Flowtable to initialize with
+        sites [List (Of Site)]: Sitetable to initialize with
+        unitLen [number]: How many (KM) before decrementing/incrementing the value portion of a SiteID
+        '''
         self.totalSize = 0
         self.flowTable = flows
         self.siteTable = sites
-        self.unitLength = 1 # km; How many km before incrementing what ID should be assigned proportionally
+        self.unitLength = unitLen # km; How many km before incrementing what ID should be assigned proportionally
+
     def recalculateTotalLength(self):
+        '''
+        Recalculates the Network's totalSize
+        Returns [None]
+        '''
         self.totalSize = 0
         for f in self.flowTable:
             self.totalSize += f.length
         
     def removeInvolvedFlows(self,site):
+        '''
+        Removes any flows from the flow table which have 'site' as
+        one of the endpoints
+
+        site [Site]: Site that if appearing in
+                     a flow in the flow table, means the flow should be purged
+
+        Returns [None]
+        '''
         i = 0        
         while i in range(len(self.flowTable)):
             f = self.flowTable[i]
@@ -525,8 +582,10 @@ class Network(object):
 def importJSON(filepath):
     '''
     Will import a dictionary from a JSON file
-    @type filepath: string
-    @param filepath: Filepath of the JSON file to import
+
+    filepath [string]: Filepath of the JSON file to import
+
+    Returns [Dictionary(Formatted geoJSON dictionary)]: A formatted geoJSON dictionary in python!
     '''
     try:
         f = open(filepath,"r").read()
@@ -538,6 +597,16 @@ def importJSON(filepath):
 
 # Will return the site which either has positional eq with "site" or site itself
 def peq(siteList,site):
+    '''
+    Will returns the site that has positional equality with 'site' argument or
+    the provided 'site' variable itself.
+
+    siteList [List(Of Site)]: List of sites to compare site with
+    site [Site]: Site to compare with
+
+    Returns [Site]: The site that has positional equality with 'site' argument or
+    the provided 'site' variable itself.
+    '''
     for e in siteList:
         if e.hasPositionalEquality(site):
             return e
@@ -546,18 +615,15 @@ def peq(siteList,site):
 
 def isolateNet(jsonDict,checkName=False):
     '''
-    Isolate a network from a geoJSON dictionary
-    (Give the fields we want and put into a class).
-    Will consolodate the network upon creation to save
-    time
-    @type jsonDict: Dictionary
-    @param jsonDict: The Dictionary provided from importing a json file
-    @type checkName: bool
-    @param checkName: Should we include name fields in our network for flows/sites
+    Isolate a network from a geoJSON dictionary (Give the fields we want and put into a class).
+    Will consolodate the network upon creation to save time
 
-    @rtype: Network
-    @return: An isolated network from JSON dictionary.
+    jsonDic [Dictionary]: The Dictionary provided from importing a json file
+    checkName: [bool]: Should we include name fields in our network for flows/sites
+
+    Returns [Network] An isolated network from JSON dictionary.
     '''
+
     fList = jsonDict["features"]
     linesList = []
     sitesList = []
@@ -630,11 +696,14 @@ def isolateNet(jsonDict,checkName=False):
 
 def calculateSink(net):
     '''
-    Calculate the sink for a given network.
-    @type net: Network
-    @param net: Network to perform analysis on
-    @rtype: Site
-    @return: The sink site of a network
+    Calculate the sink for a given network. The sink is the most downstream
+    Site of the entire Network. (If you think of the Network like a tree, it would
+    be the root!)
+
+    net [Network]: Network to perform analysis on
+
+    Returns [Site]: The sink site of a network
+    Raises RuntimeError if the graph has no sink (is invalid)!
     '''
     kaboodle = []
     for kit in net.siteTable:
@@ -649,11 +718,13 @@ def calculateSink(net):
 
 def calculateFaucets(net):    
     '''
-    Calculate the faucets for a given network
-    @type net: Network
-    @param net: Network to perform analysis on.
-    @rtype: List(Of Site)
-    @return: List of sites at the upstream-most areas of a network (faucets).
+    Calculate the faucets for a given network. The 'faucets' are the sources of
+    the water network. (If you think of the network as a tree, these would be the outermost
+    leaf nodes)
+
+    net [Network]: Network to perform analysis on.
+    
+    Returns List(Of Site): List of sites at the upstream-most areas of a network (faucets).
     '''
     faucets = []
     for s in net.siteTable:
@@ -662,7 +733,18 @@ def calculateFaucets(net):
             faucets.append(s)
     return faucets
 
+
 def setupSiteSafety(net):
+    '''
+    Will calculate the pending upstream number for every site in the sitetable
+
+    net [Network]: The network to lookup sites in site-table.
+
+    Returns [None]
+    
+    Notes: Do NOT call this method outside of preconfigured use. It will mess up the
+    algorithm.
+    '''
     for s in net.siteTable:
         s.calculatePendingUpstream()
 
@@ -670,13 +752,15 @@ def setupSiteSafety(net):
 
 def calculateUpstreamDistances(net,faucets):
     '''
-    Recalculates the upstream distances for a network starting from a sink.
-    @type net: Network
-    @param net: Network to perform operations on.
-    @type faucets: List(Of Site)
-    @param faucets: A premade list of faucets used to complete method
-    @rtype: None
-    @return: Nothing
+    Recalculates the upstream distances for each Site in a Network starting from each faucet 
+    (furthest sites from the sink, dendrites)
+    
+
+    net [Network]: Network to perform operations on.
+    faucets [List(Of Site)]: A premade list of faucets used to complete method
+    
+    Returns [None]
+    Raises RuntimeError if there is a multiple sink situation
     '''
     # Written by Nicole and Marcus
     queue = list(faucets)
@@ -690,7 +774,6 @@ def calculateUpstreamDistances(net,faucets):
                 if con[0].pendingUpstream == 0:
                     cntr -= 1
         u.pendingUpstream = cntr
-
         if u.id == 32:
             print("hey")
         if u.pendingUpstream > 0:
@@ -698,25 +781,19 @@ def calculateUpstreamDistances(net,faucets):
             # Re-add it to the queue at the end
             queue.append(u)
             continue
-
         totalUp = 0
-        totalDown = 0
-        
+        totalDown = 0        
         dcon = None
         if len(cs) == 1:
-            # This is a true faucet
-            
+            # This is a true faucet            
             if cs[0][1] == DOWNSTREAM_CON:
-                dcon = cs[0][2]
-                
+                dcon = cs[0][2]                
             else:
-
                 break # This is the sink
             # Append downstream site if not already in the queue
             if cs[0][0] not in queue:
                 queue.append(cs[0][0])
-        else:
-            
+        else:            
             for entry in cs:
                 if entry[1] == DOWNSTREAM_CON:
                     if dcon is None:
@@ -726,19 +803,24 @@ def calculateUpstreamDistances(net,faucets):
                         # Append downstream site if not already in the queue
                         if entry[0] not in queue:
                             queue.append(entry[0])
-                else:
-                   
+                else:                   
                     totalUp += entry[2].thisAndUpstream
             totalDown += totalUp
             if dcon is None:
                 # Reached the end
                 raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
             else:
-                dcon.thisAndUpstream = totalDown
+                dcon.thisAndUpstream = totalDown 
 
-    
 
 def positionalEqualityList(net):
+    '''
+    Determines all sites with positional equality
+
+    net [Network]: Network whose sites we will compare locations
+
+    Returns [List(Of Site)]: List of sites with positional equality
+    '''
     l = []
     for site in net.siteTable:
         for situ in net.siteTable:
@@ -750,8 +832,17 @@ def positionalEqualityList(net):
 
 
 def removeUseless(net):
-    ''' Merged flows inherit the length of the subsegments
-    They do NOT add these lengths together
+    ''' 
+    Will remove sites from the network with only two neighbors (1 up 1 down)
+    Will then merge the two flows together into one flow, keeping the length
+    of 1 of the deleted flows. (This is done to resolve MultiLineString) entries in
+    geoJSON files.
+
+    net [Network]: Network to operate on
+
+    Returns [None]
+    Notes: Do NOT run this method if you want to take loops into account as this
+    method will break the runtime if loops are present!
     '''
     i = 0
     while i in range(len(net.siteTable)):
@@ -797,15 +888,20 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
     0000 | 0000
     WTRSHD  UNIQUE
 
-    @type net: Network
-    @param net: Network to perform algorithm on.
-    @type maxDownstreamID: SiteID
-    @param maxDownstreamID: The maximal ID for the network. (This is what the sinksite will be)
-    @type sinkSite: Site
-    @param sinkSite: [Optional!]The lowermost site in the network. Parent to all. If not provided, will be computed 
+    net [Network]: Network to perform algorithm on.
+    maxDownstreamID [SiteID]: The maximal ID for the network. (This is what the sinksite will be)
+    sinkSite [Site]: [Optional!] The lowermost site in the network. Parent to all. If not provided, will be computed 
 
     '''
-    def alg(idBefore,totalAccum,leng,unitDist):        
+    def alg(idBefore,totalAccum,leng,unitDist): 
+        ''' 
+        Internal core algorithm. 
+        idBefore [SiteID]: What the ID was before
+        totalAccum [number]: Total accumulated distance so far
+        leng [number]: Length to be computed with
+        unitDist [number]: How long before the value portion of an ID ticks down to -1
+                            of the previous
+        '''       
         frac = leng / unitDist        
         newValue = int(idBefore.value - numpy.floor(frac))        
         if newValue == idBefore.value:
@@ -899,12 +995,12 @@ def navigateToNearestConfluence(net,site):
     '''
     Will navigate to the nearest confluence. Returns the last flow which allowed reaching the
     confluence. 
-    @type net: Network
-    @param net: Network to perform analysis on
-    @type site: Site
-    @param site: Site to start operation from.
-    @rtype: Site
-    @return: Nearest confluence to argument 'site'
+
+    net [Network]: Network to perform analysis on
+    site [Site]: Site to start operation from.
+
+    Returns [Site]: Nearest confluence to argument 'site'
+    Raises RuntimeWarning if 'site' is not in sitetable
     '''
     if not site in net.siteTable:
         raise RuntimeWarning("WARNING navigate_nearestConfluence() failed; site not in siteTable")
@@ -930,13 +1026,12 @@ def navigateToNearestConfluence(net,site):
 def navigateFurthestUpstream(net,site):
     '''
     Will navigate through the network to find the node at the end of a branch
-    by using > operations
-    @type net: Network
-    @param net: Network to perform analysis on.
-    @type site: Site
-    @param site: Site to start operation from.
-    @rtype: Site
-    @return: Furthest upstream site.
+    by using > operations.
+
+    net [Network]: Network to perform analysis on.
+    site [Site]: Site to start operation from.
+    
+    Returns [Site]: Furthest upstream site.
     '''
     sInvest = site
     flag = True
@@ -958,12 +1053,18 @@ def navigateFurthestUpstream(net,site):
         sInvest = flup.upstreamSite
     return sInvest
         
+
 def getLowestUpstreamNumber(net,site):
+    '''
+    Gets the least (in number terms) upstream ID from a particular
+    site. (Useful for refernce ID'ing confluences)
+
+    net [Network]: Network to use in acquisition
+    site [Site]: Starting point of curiosity
+
+    Returns [SiteID]: Furthest upstream's SiteID
+    '''
     return navigateFurthestUpstream(net,site).assignedID
-
-
-        
-    
 
 # -------------------------------------------------------
 # MAIN                  MAIN                    MAIN
