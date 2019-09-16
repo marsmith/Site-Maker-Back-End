@@ -209,13 +209,30 @@ class Site(object):
 
     Class Variables
     ---------------------------------------------------------------------------
-    
+    id [number] : Site's ID
+    latlong [LatLong] : The location of the Site 
+    z [number] : Unused
+    h [number] : Unused
+    flowsCon [list] : List of flows connected to the Site
+    assignedID [number] : Assigned Site ID
+    pendingUpstream : Number of flows that have yet to be processed, -1 if none
+    downwardRefID [number] : Downward reference ID for the Site, None if there isn't any
 
     Usage
     ---------------------------------------------------------------------------
 
     '''
     def __init__(self,id,lat,long,h,z=0,flC = None):
+        '''
+        Constructs a new Site object
+
+        id [number]: id (0 to 9999)
+        lat [float] : Valid latitude for the Site
+        long [float] : Valid longitude for the Site
+        h [number] : Unused
+        z [number] : Unused (default = 0)
+        flC [list] : List will hold the flows connected to the Site (default = None)
+        '''
         self.id = id
         self.latLong = LatLong(lat,long)
         self.z = z
@@ -227,13 +244,39 @@ class Site(object):
         self.downwardRefID = None # This is what is stored as reference to the next downstream ID
                                     # For resolving assignments in the Plotter
     def __eq__(self,other):
+        '''
+        Performs a '==' comparison between the calling Site and other
+
+        other [Site]: The other side of the '==' to compare to
+
+        Returns [bool]: True if self is equal to other. False otherwise.
+        '''
         return self.id == other.id
     def __lt__(self,other):
+        '''
+        Performs a '<' comparison between the calling Site and other
+
+        other [Site]: The other side of the '<' to compare to
+
+        Returns [bool]: True if self is less than or equal to other. False otherwise.
+        '''
         return self.id < other.id
     def __gt__(self,other):
+        '''
+        Performs a '>' comparison between the calling Site and other
+
+        other [Site] : The other side of the '>' to compare to
+
+        Returns [bool] : True if self is greater than to other. False otherwise.
+        '''
         return self.id > other.id
     
     def calculatePendingUpstream(self):
+        '''
+        Calculates the number of pending upstreams a site has
+
+        Updates class variable "pendingUpstream"
+        '''
         cs = self.connectedSites()     
         cntr = 0   
         for e in cs:
@@ -243,19 +286,57 @@ class Site(object):
         self.pendingUpstream = cntr
 
     def hasAssignedIDEquality(self,other):
+        '''
+        Performs an ID comparison between the calling Site and other
+
+        other [Site] : The other side of the '==' to compare to
+
+        Returns [bool] : True if self.self.assignedID is the same as other.self.assignedID. False otherwise.
+        '''
         return self.assignedID == other.assignedID
     def hasPositionalEquality(self,other):
+        '''
+        Performs an LatLong comparison between the calling Site and other
+
+        other [Site] : The other side of the '==' to compare to
+
+        Returns [bool] : True if self.latlong is the same as other.latlong. False otherwise.
+        '''
         return self.latLong == other.latLong
     def __str__(self):
+        '''
+        Returns a string version of the Site
+        Returns [str]
+        '''
         return "Site <{0}> {1}".format(self.id,self.latLong)
     def addFlow(self,flow):
+        '''
+        Adds a flow to the list of flows the Site is connected to 
+
+        flow [Flow] : The flow object that is to be added to self.flowsCon
+
+        '''
         self.flowsCon.append(flow)
     def isProperNode(self):
+        '''
+        Performs a check on the Site. Ensures that it is a proper Site.
+
+        A proper Site has at either 1 or 3 flows connected. 
+
+        Returns [bool] : True if it's a proper Site. False otherwise. 
+        '''
         # Return if there is either one line connected (source or sink) or is a confluence (three)
         # Will return false if this site is intermediately on a line
         return len(self.flowsCon) >= 1 and len(self.flowsCon) <= 3 and not len(self.flowsCon) == 2
     
     def removeInvolvedFlows(self,site):
+        '''
+        DO NOT USE OUTSIDE FO PRECONFIGURATION
+
+        Used it RemoveUseless() function. Deletes the flows that were connected
+        to removed Sites. 
+
+        '''
         i = 0        
         while i in range(len(self.flowsCon)):
             f = self.flowsCon[i]
@@ -263,7 +344,17 @@ class Site(object):
                 self.flowsCon.remove(f)
             else:
                 i += 1 
+    
+
     def connectedSites(self):
+        '''
+        Creates a list of connected sites and provides them with important information
+        to reduce look up time.
+
+        Adds connected Sites to the list in a tuple with format : (Site, "DOWNSTREAM_CON"/"UPSTREAM_CON", flow)
+
+        Returns [List((Site, Dir, Flow))] : Returns the list of connected sites. 
+        '''
         csl = []
         for f in self.flowsCon:
             us = f.upstreamSite
@@ -273,22 +364,27 @@ class Site(object):
             elif ds == self:
                 csl.append((us,UPSTREAM_CON,f))
         return csl
-    def safeGetUpstream(self):
-        up = self.getUpstream()
-        assert(len(up) == 1)
-        return up[0]
-    def safeGetDownstream(self):
-        down = self.getDownstream()
-        assert(len(down) == 1)
-        return down[0]
+
+
     def getUpstream(self):
+        '''
+        Creates a list of all upstream Sites from one Site
+
+        Returns [List(Site)] : list of all upstream Sites
+        '''
         ups = []
         cs = self.connectedSites()
         for con in cs:
             if con[1] == UPSTREAM_CON:
                 ups.append(con[0])
         return ups
+
     def getDownstream(self):
+        '''
+        Creates a list of all downstream Sites from one Site
+
+        Returns [List(Site)] : list of all downstream Sites
+        '''
         down = []
         cs = self.connectedSites()
         for con in cs:
@@ -302,12 +398,39 @@ UPSTREAM_CON = 2
 
 class Flow(object):
     '''
+    Description
+    ---------------------------------------------------------------------------
     Represents a flowline which connects two sites (either fake or real)
     Has unique ID to be updated in precompilation; contains reach code
     and length attributes as well as reference to which sites are the
     endpoints (these should be found in the sitesTable of the Network() object)
+
+    Class Variables
+    ---------------------------------------------------------------------------
+    upstreamSite [Site] : The upstream Site of the flow
+    downstreamSite [Site] : The downstream Site of the flow
+    id [number] : The flow's Id number
+    reachCode [number] : The flow's reach code 
+    name [String] : The GNIS Name of the flow 
+    length [float] : The length of the flow segment
+    thisAndUpstream [float]: The length of the current flow segment + the distance to the "sink" Site.
+    unadressable [bool] : Bool that represents if a flow has no allocated address space and must be ignored
+
+    Usage
+    ---------------------------------------------------------------------------
+
     '''
     def __init__(self,id,startSite,endSite,length,reachCode = -1,name=None):
+        '''
+        Constructs a new Flow object
+
+        id [number]: id (0 to 9999)
+        startSite [Site]: The upstream site of the flow
+        endSite [Site]: The downstream site of the flow
+        length [number] : The length of the flow
+        reachCode [number] : The reach code of the flow (default = -1)
+        name [String] : The name of the flow (default = None)
+        '''
         self.upstreamSite = startSite
         self.downstreamSite = endSite
         self.id  = id
@@ -318,8 +441,22 @@ class Flow(object):
         self.unadressable = False # If a flow leads to a site which has already been ID'd, it must be part of the closing flow of a loop
                                 # It has no allocated address space and must be ignored
     def __lt__(self,other):
+        '''
+        Performs an Flow priority comparision between the calling Site and other
+
+        other [Site] : The other flow that will be compared
+
+        Returns [bool] : True if self has a lower priority than other. False otherwise.
+        '''
         return self.hasHigherPriority(other)
+
     def hasHigherPriority(self,otherFlow):
+        '''
+        Determines which flow to go to first
+
+        Return [bool] : True if self has a higher priority than other. False otherwise.
+        '''
+
         # Returns true if this is
         if self.name is None:
             if otherFlow.name is None:
@@ -333,9 +470,25 @@ class Flow(object):
             else:
                 # Both are named, go by distance
                 return self.thisAndUpstream < otherFlow.thisAndUpstream
+
     def __le__(self,other):
+        '''
+        Performs an Flow priority comparision between the calling Site and other
+
+        other [Site] : The other flow that will be compared
+
+        Returns [bool] : True if self has a lower priority than other or if they're equal to eachother. False otherwise.
+        '''
         return self.hasHigherPriority(other) or self.__eq__(other)
+
     def __gt__(self,other):
+        '''
+        Performs an Flow priority comparision between the calling Site and other
+
+        other [Site] : The other flow that will be compared
+
+        Returns [bool] : True if self has a higher priority than other. False otherwise.
+        '''
         return not self.__le__(other) 
     def __eq__(self,other):
         return self.reachCode == other.reachCode or self.id == other.id
