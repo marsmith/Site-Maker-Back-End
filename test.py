@@ -11,6 +11,19 @@ human verification, but this ensures there are no minor bugs
 EPSILON = 0.01
 
 class TestPrecompiler(unittest.TestCase):
+    def SiteLoader(self, filepath):
+        jsonDict = open(filepath,"r").read()
+        jsonDict = json.loads(jsonDict)
+        fList = jsonDict["features"]
+        fileobject = open("RealSites.txt", "w")
+
+        for geomObj in fList:
+            coord = geomObj['geometry']['coordinates']
+            site_no = geomObj['properties']['site_no']
+            string = "%s, %f, %f\n" %(site_no, coord[0], coord[1])
+            fileobject.write(string)
+        fileobject.close()
+
     def create_files(self, net):
         fileobject = open("Sites.txt", "w")
         for site in net.siteTable:
@@ -72,11 +85,13 @@ class TestPrecompiler(unittest.TestCase):
         pSNA(netTup[0],maxID,netTup[1])
         confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
-        self.create_files(netTup[0])
-        create_visuals("SmallNet001")
-    
-    ''' Test on TrickyLoops001; 
-    '''
+        self.SiteLoader("Data/snapped-site-test-subset.json")
+        #self.create_files(netTup[0])
+        #create_visuals("SmallNet001")
+        createWebViewer('Data/SmallNet001.json', netTup, "Data/snapped-site-test-subset.json")
+        
+
+
     def test_loop001(self):
         netTup = self.verifyImport('Data/TrickyLoops001.json')
         maxID = SiteID(1001)
@@ -84,7 +99,7 @@ class TestPrecompiler(unittest.TestCase):
         confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
         self.create_files(netTup[0])
-        create_visuals("TrickyLoops001")
+        #create_visuals("TrickyLoops001")
         
 
     def test_loop002(self):
@@ -94,8 +109,5 @@ class TestPrecompiler(unittest.TestCase):
         confluenceReferenceIDAssign(netTup[0],netTup[2])
         self.verifyAllNumbered(netTup[0])
         self.create_files(netTup[0])
-        create_visuals("LoopTest001-NHDSubset")
+        #create_visuals("LoopTest001-NHDSubset")
 
-
-
-    
