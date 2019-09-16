@@ -1,3 +1,4 @@
+
 import json
 import numpy
 import sys
@@ -7,11 +8,40 @@ import test
 import Visualizer
 degree_sign= u'\N{DEGREE SIGN}'
 
-'''
-Stores a latitude and longitude; converter from decimal degrees to longhand notation
-'''
 class LatLong(object):
+    '''
+    Description
+    ---------------------------------------------------------------------------
+    Represents a Latitude and Longitudinal coordinates in
+    decimal degrees. Takes decimal degree latitude and longitudinal
+    values and separates into constituent parts (degrees, minutes and seconds)
+
+    Class Variables
+    ---------------------------------------------------------------------------
+    dLat [number] : Degrees Latitude
+    mLat [number] : Minutes Latitude
+    sLat [number] : Seconds Latitude
+    dLong [number] : Degrees Longitude
+    mLong [number] : Minutes Longitude
+    sLong [number] : Seconds Longitude
+    srcLat [number] : The raw float decimal number latitude
+    srcLong [number] : The raw float decimal number longitude
+
+    Usage
+    ---------------------------------------------------------------------------
+    >>> latLong1 = LatLong(-75.651190010722587,43.800854964303937)
+    >>> print(latLong)
+    -76.0° 20.0' 55.715961398686886", 43.0° 48.0' 3.07787149417436"
+    
+    '''
     def __init__(self,decimalDegreesLat,decimalDegreesLong):
+        '''
+        Constructs a new LatLong Object.
+
+        decimalDegreesLat: Raw decimal value of latitude (ex.-75.651190010722587 )        
+        decimalDegreesLong: Raw decimal value of longitude (ex. 43.800854964303937 )
+        
+        '''
         self.dLat = numpy.floor(decimalDegreesLat)
         self.mLat = numpy.floor(60 * numpy.abs(decimalDegreesLat - self.dLat))
         self.sLat = 3600 * numpy.abs(decimalDegreesLat - self.dLat) - 60 * self.mLat
@@ -22,16 +52,62 @@ class LatLong(object):
         self.srcLat = decimalDegreesLat
         self.srcLong = decimalDegreesLong
     def __str__(self):
+        ''' 
+        Returns a string representation of the LatLong object.
+        '''
         return "{0}{1} {2}\' {3}\", {4}{5} {6}\' {7}\"".format(
             self.dLat,degree_sign,self.mLat,self.sLat,
             self.dLong,degree_sign,self.mLong,self.sLong
         )
     def __eq__(self,other):
-        return self.srcLat == other.srcLat and self.srcLong == other.srcLong
+        '''
+        Returns True if both objects are equal. False otherwise.
+        other[LatLong]: The other LatLong object to compare self to.
+        Raises RuntimeError if 'other' is not of type LatLong
+        '''
+        if isinstance(other,LatLong):
+            return self.srcLat == other.srcLat and self.srcLong == other.srcLong
+        else:
+            raise RuntimeError("LatLong.__eq__ failed! Argument of invalid type")
     __repr__ = __str__
 
+
 class SiteID(object):
+    '''
+    Description
+    ---------------------------------------------------------------------------
+    Represents a USGS groundwater site identifcation number (8 to 10 digits long)
+    There are two to three components for every SiteID:
+    (watershed) | (value) | (extension)
+        0001        9999    ---
+        1001        9876    12
+    Watersheds may range from 0000 to 9999; Values may range from 0000 to 9999
+    Extensions may be None, 00 to 99. 
+
+    Class Variables
+    ---------------------------------------------------------------------------
+    fullID [number] : Raw number in integer form
+    watershed [number]: Watershed component
+    value [number] : Value component
+    extension [number]: Extension component (default= None)
+
+    Usage
+    ---------------------------------------------------------------------------
+    >>> siteIDObj = SiteID(1001,9987)
+    >>> siteIDObj2 = SiteID(1001,9987,13)
+    >>> print(siteIDObj)
+    >>> print(siteIDObj < siteIDObj2)
+    10019987
+    True
+    '''
     def __init__(self,watershed = 1,value = 9999,extension = None):
+        '''
+        Constructs a new SiteID object
+
+        watershed [number]: Watershed (0 to 9999)
+        value [number]: 'value' portion (0 to 9999)
+        extension [number]: Extension portion (0 to 99) (default=None)
+        '''
         frm = str("%04d"%watershed)
         frm2 = str("%04d"%value)
         if extension is None:
@@ -46,11 +122,23 @@ class SiteID(object):
         self.value = value
         self.extension = extension
     def __str__(self):
+        '''
+        Returns a string version of the SiteID. Preserves all digits!
+        i.e. A SiteID of 00454950 will NOT become "4595"
+        Returns [str]
+        '''
         if self.extension is None:
             return str("%08d"%self.fullID)
         else:
             return str("%10d"%self.fullID)
     def __lt__(self,other):
+        '''
+        Performs a '<' comparison between the calling SiteID and other
+
+        other [number or SiteID]: The other side of the '<' to compare to
+
+        Returns [bool]: True if self is less than other. False otherwise.
+        '''
         if isinstance(other,int):
             return self.fullID < other
         elif isinstance(other,SiteID):
@@ -70,12 +158,40 @@ class SiteID(object):
         else:
             raise RuntimeError("ERROR: SiteID __lt__ secondary argument not compatible!")
     def __le__(self,other):
+        '''
+        Performs a '<=' comparison between the calling SiteID and other
+
+        other [number or SiteID]: The other side of the '<=' to compare to
+
+        Returns [bool]: True if self is less than or equal to other. False otherwise.
+        '''
         return self < other or self.__eq__(other)
     def __ge__(self,other):
+        '''
+        Performs a '>=' comparison between the calling SiteID and other
+
+        other [number or SiteID]: The other side of the '>=' to compare to
+
+        Returns [bool]: True if self is greater than or equal to other. False otherwise.
+        '''
         return self > other or self.__eq__(other)
     def __gt__(self,other):
+        '''
+        Performs a '>' comparison between the calling SiteID and other
+
+        other [number or SiteID]: The other side of the '>' to compare to
+
+        Returns [bool]: True if self is greater than to other. False otherwise.
+        '''
         return not self <= other
     def __eq__(self,other):
+        '''
+        Performs a '==' comparison between the calling SiteID and other
+
+        other [number or SiteID]: The other side of the '==' to compare to
+
+        Returns [bool]: True if self is equal to other. False otherwise.
+        '''
         if isinstance(other,int):
             return self.fullID == other
         else:
@@ -83,13 +199,22 @@ class SiteID(object):
     __repr__ = __str__
 
 
-
-'''
-Represents the endpoint of a flow line. The "Nodes" of a Network. Stored
-in the SitesTable of the Network. Multiple sites may exist on the same point
-but all should have a unique ID
-'''
 class Site(object):
+    '''
+    Description
+    ---------------------------------------------------------------------------
+    Represents the endpoint of a Flow. The "Nodes" of a Network. Stored
+    in the SitesTable of the Network. Multiple sites may exist on the same point
+    but all should have a unique ID
+
+    Class Variables
+    ---------------------------------------------------------------------------
+    
+
+    Usage
+    ---------------------------------------------------------------------------
+
+    '''
     def __init__(self,id,lat,long,h,z=0,flC = None):
         self.id = id
         self.latLong = LatLong(lat,long)
@@ -129,9 +254,7 @@ class Site(object):
         # Return if there is either one line connected (source or sink) or is a confluence (three)
         # Will return false if this site is intermediately on a line
         return len(self.flowsCon) >= 1 and len(self.flowsCon) <= 3 and not len(self.flowsCon) == 2
-    ''' Return list of connected sites either upstream or downstream
-    e
-    ''' 
+    
     def removeInvolvedFlows(self,site):
         i = 0        
         while i in range(len(self.flowsCon)):
@@ -176,13 +299,14 @@ class Site(object):
 
 DOWNSTREAM_CON = 1
 UPSTREAM_CON = 2
-'''
-Represents a flowline which connects two sites (either fake or real)
-Has unique ID to be updated in precompilation; contains reach code
-and length attributes as well as reference to which sites are the
-endpoints (these should be found in the sitesTable of the Network() object)
-'''
+
 class Flow(object):
+    '''
+    Represents a flowline which connects two sites (either fake or real)
+    Has unique ID to be updated in precompilation; contains reach code
+    and length attributes as well as reference to which sites are the
+    endpoints (these should be found in the sitesTable of the Network() object)
+    '''
     def __init__(self,id,startSite,endSite,length,reachCode = -1,name=None):
         self.upstreamSite = startSite
         self.downstreamSite = endSite
@@ -219,11 +343,12 @@ class Flow(object):
         return "Flow <{0}> upstream is {1}, downstream is {2}".format(self.id,self.upstreamSite.id,self.downstreamSite.id)
     __repr__ = __str__
 
-'''
-Represents a collection of flows connected at the ends by sites.
-Keeps track of its total size (length of all flows combined)
-'''
+
 class Network(object):
+    '''
+    Represents a collection of flows connected at the ends by sites.
+    Keeps track of its total size (length of all flows combined)
+    '''
     def __init__(self,flows,sites):
         self.totalSize = 0
         self.flowTable = flows
@@ -243,10 +368,13 @@ class Network(object):
             else:
                 i += 1
         
-'''
-Will import a dictionary from a JSON file
-'''
+
 def importJSON(filepath):
+    '''
+    Will import a dictionary from a JSON file
+    @type filepath: string
+    @param filepath: Filepath of the JSON file to import
+    '''
     try:
         f = open(filepath,"r").read()
         y = json.loads(f)
@@ -262,13 +390,21 @@ def peq(siteList,site):
             return e
     return site
 
-'''
-Isolate a network from a geoJSON dictionary
-(Give the fields we want and put into a class).
-Will consolodate the network upon creation to save
-time
-'''
+
 def isolateNet(jsonDict,checkName=False):
+    '''
+    Isolate a network from a geoJSON dictionary
+    (Give the fields we want and put into a class).
+    Will consolodate the network upon creation to save
+    time
+    @type jsonDict: Dictionary
+    @param jsonDict: The Dictionary provided from importing a json file
+    @type checkName: bool
+    @param checkName: Should we include name fields in our network for flows/sites
+
+    @rtype: Network
+    @return: An isolated network from JSON dictionary.
+    '''
     fList = jsonDict["features"]
     linesList = []
     sitesList = []
@@ -338,11 +474,15 @@ def isolateNet(jsonDict,checkName=False):
     
     return Network(linesList,sitesList)
 
-'''
-Calculate the sink for a given network.
-Returns the ID of that Site
-'''
+
 def calculateSink(net):
+    '''
+    Calculate the sink for a given network.
+    @type net: Network
+    @param net: Network to perform analysis on
+    @rtype: Site
+    @return: The sink site of a network
+    '''
     kaboodle = []
     for kit in net.siteTable:
         if len(kit.flowsCon) == 1:
@@ -354,11 +494,14 @@ def calculateSink(net):
         raise RuntimeError("ERROR: calculateSink: Detected invalid graph")
     return kaboodle
 
-'''
-Calculate the faucets for a given network
-Returns the 
-'''
-def calculateFaucets(net):
+def calculateFaucets(net):    
+    '''
+    Calculate the faucets for a given network
+    @type net: Network
+    @param net: Network to perform analysis on.
+    @rtype: List(Of Site)
+    @return: List of sites at the upstream-most areas of a network (faucets).
+    '''
     faucets = []
     for s in net.siteTable:
         if len(s.flowsCon) == 1 and s.flowsCon[0].upstreamSite == s:
@@ -371,10 +514,17 @@ def setupSiteSafety(net):
         s.calculatePendingUpstream()
 
 
-'''
-Recalculates the upstream distances for a network starting from a sink
-'''
+
 def calculateUpstreamDistances(net,faucets):
+    '''
+    Recalculates the upstream distances for a network starting from a sink.
+    @type net: Network
+    @param net: Network to perform operations on.
+    @type faucets: List(Of Site)
+    @param faucets: A premade list of faucets used to complete method
+    @rtype: None
+    @return: Nothing
+    '''
     # Written by Nicole and Marcus
     queue = list(faucets)
     while len(queue) >= 1:
@@ -445,10 +595,11 @@ def positionalEqualityList(net):
                 l.append((site,situ))
     return l
 
-''' Merged flows inherit the length of the subsegments
-They do NOT add these lengths together
-'''
+
 def removeUseless(net):
+    ''' Merged flows inherit the length of the subsegments
+    They do NOT add these lengths together
+    '''
     i = 0
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
@@ -481,17 +632,26 @@ def removeUseless(net):
 
 
 
-'''
-Will assign real ID's to the fake nodes via the Proportional Site Naming Algorithm
-1km is the mininum distance to generate unique 8 digit ID's. The network must represent the 
-same watershed in this case.
-pSNA will NOT shift down ID's if one exists already. This is a theoretical model
-pSNA WILL generate 10 digit ID's if the distance accumulated between two sites is less than the
-unit length (1km by default)
-0000 | 0000
-WTRSHD  UNIQUE
-'''
+
 def pSNA(net,maxDownstreamID,sinkSite = None):
+    '''
+    Will assign real ID's to the fake nodes via the Proportional Site Naming Algorithm
+    1km is the mininum distance to generate unique 8 digit ID's. The network must represent the 
+    same watershed in this case.
+    pSNA will NOT shift down ID's if one exists already. This is a theoretical model
+    pSNA WILL generate 10 digit ID's if the distance accumulated between two sites is less than the
+    unit length (1km by default)
+    0000 | 0000
+    WTRSHD  UNIQUE
+
+    @type net: Network
+    @param net: Network to perform algorithm on.
+    @type maxDownstreamID: SiteID
+    @param maxDownstreamID: The maximal ID for the network. (This is what the sinksite will be)
+    @type sinkSite: Site
+    @param sinkSite: [Optional!]The lowermost site in the network. Parent to all. If not provided, will be computed 
+
+    '''
     def alg(idBefore,totalAccum,leng,unitDist):        
         frac = leng / unitDist        
         newValue = int(idBefore.value - numpy.floor(frac))        
@@ -581,11 +741,18 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             u.downstreamID = idNext # The previous downstream ID is this
             idNext = newID
 
-'''
-Will navigate to the nearest confluence. Returns the last flow which allowed reaching the
-confluence. 
-'''
+
 def navigateToNearestConfluence(net,site):
+    '''
+    Will navigate to the nearest confluence. Returns the last flow which allowed reaching the
+    confluence. 
+    @type net: Network
+    @param net: Network to perform analysis on
+    @type site: Site
+    @param site: Site to start operation from.
+    @rtype: Site
+    @return: Nearest confluence to argument 'site'
+    '''
     if not site in net.siteTable:
         raise RuntimeWarning("WARNING navigate_nearestConfluence() failed; site not in siteTable")
     s = site
@@ -606,11 +773,18 @@ def navigateToNearestConfluence(net,site):
             rtrnFlow = dsCons[0][2]
             s = dsCons[0][0]
 
-'''
-Will navigate through the network to find the node at the end of a branch
-by using > operations
-'''
+
 def navigateFurthestUpstream(net,site):
+    '''
+    Will navigate through the network to find the node at the end of a branch
+    by using > operations
+    @type net: Network
+    @param net: Network to perform analysis on.
+    @type site: Site
+    @param site: Site to start operation from.
+    @rtype: Site
+    @return: Furthest upstream site.
+    '''
     sInvest = site
     flag = True
     while flag:
