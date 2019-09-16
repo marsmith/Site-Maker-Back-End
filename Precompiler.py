@@ -56,10 +56,10 @@ class SiteID(object):
         elif isinstance(other,SiteID):
             if self.watershed == other.watershed:
                 if self.value == other.value:
-                    if self.watershed is None and other.watershed is None:
+                    if self.extension is None and other.extension is None:
                         return False
                     else:
-                        if self.watershed is None:
+                        if self.extension is None:
                             return False
                         else:
                             return True
