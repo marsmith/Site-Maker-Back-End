@@ -7,6 +7,8 @@ import Dijkstra
 import test
 import Visualizer
 import DataIO
+
+
 degree_sign= u'\N{DEGREE SIGN}'
 
 class LatLong(object):
@@ -1078,19 +1080,38 @@ def getLowestUpstreamNumber(net,site):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/SmallNet001.json")
-    net = isolateNet(dictt,True)    
-    #net.unitLength = 0.1 # km
-    sinks = calculateSink(net)
-    #removeUseless(net)
-    assert(len(sinks) == 1)
-    setupSiteSafety(net)
-    faucets = calculateFaucets(net)
-    calculateUpstreamDistances(net,faucets)
-    net.recalculateTotalLength()
     
-    pSNA(net,SiteID(1001,9999,None),sinks[0])
+    dictt = importJSON("Data/OneidaFlowSimplified.json")
+    print("Imported Network")
+    net = isolateNet(dictt,True) 
+    print("Isolated Network")
     DataIO.networkToCSV(net,"C:\\Users\\mpanozzo\\Documents\\SITE_TABLE.csv","C:\\Users\\mpanozzo\\Documents\\FLOW_TABLE.csv")
+    print("Exported Network")
     t = test.TestPrecompiler()
     t.create_files(net)
     Visualizer.create_visuals("hello")
+    print("Visualized Network")
+    
+    '''
+    sinks = calculateSink(net)
+    print("Calculated Sink")
+    #removeUseless(net)
+    assert(len(sinks) == 1)
+    setupSiteSafety(net)
+    print("Site Safety Confl Network")
+    faucets = calculateFaucets(net)
+    print("Calculated Faucets")
+    calculateUpstreamDistances(net,faucets)
+    print("Calculated Distances Up")
+    net.recalculateTotalLength()
+    print("Recalc Total Network Length")
+    
+    pSNA(net,SiteID(1001,9999,None),sinks[0])
+    print("Completed Algorithm")
+    DataIO.networkToCSV(net,"C:\\Users\\mpanozzo\\Documents\\SITE_TABLE.csv","C:\\Users\\mpanozzo\\Documents\\FLOW_TABLE.csv")
+    print("Exported Network")
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("hello")
+    print("Visualized Network")
+'''
