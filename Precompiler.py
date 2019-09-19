@@ -3,9 +3,10 @@ import json
 import numpy
 import sys
 import Dijkstra
-import FileIO
+
 import test
 import Visualizer
+import DataIO
 degree_sign= u'\N{DEGREE SIGN}'
 
 class LatLong(object):
@@ -77,11 +78,13 @@ class SiteID(object):
     Description
     ---------------------------------------------------------------------------
     Represents a USGS groundwater site identifcation number (8 to 10 digits long)
-    There are two to three components for every SiteID:
-    (watershed) | (value) | (extension)
-        0001        9999    ---
-        1001        9876    12
-    Watersheds may range from 0000 to 9999; Values may range from 0000 to 9999
+    There are one to two components for every SiteID:
+     (value)        | (extension)
+        00010000        9999    ---
+        10010000        9876    12
+    Watersheds are a national level number (the smallest subdivision being 12 digits)
+        These are not included in the main ID portion but will become important later on
+    Values are 8 digits long
     Extensions may be None, 00 to 99. 
 
     Class Variables
@@ -90,22 +93,22 @@ class SiteID(object):
     watershed [number]: Watershed component
     value [number] : Value component
     extension [number]: Extension component (default= None)
-
+    id [number] The actually used Id portion (value + extension)
     Usage
     ---------------------------------------------------------------------------
-    >>> siteIDObj = SiteID(1001,9987)
-    >>> siteIDObj2 = SiteID(1001,9987,13)
+    >>> siteIDObj = SiteID(100100000000,99876543)
+    >>> siteIDObj2 = SiteID(100100000000,99876543,13)
     >>> print(siteIDObj)
     >>> print(siteIDObj < siteIDObj2)
-    10019987
+    99876543
     True
     '''
-    def __init__(self,watershed = 1,value = 9999,extension = None):
+    def __init__(self,watershed = 100000000000,value = 99999999,extension = None):
         '''
         Constructs a new SiteID object
 
-        watershed [number]: Watershed (0 to 9999)
-        value [number]: 'value' portion (0 to 9999)
+        watershed [number]: Watershed (0 to 999999999999)
+        value [number]: 'value' portion (0 to 99999999)
         extension [number]: Extension portion (0 to 99) (default=None)
         '''
         frm = str("%04d"%watershed)
@@ -113,11 +116,13 @@ class SiteID(object):
         if extension is None:
             # 8 digit general ID
             self.fullID = int(frm + frm2)
+            self.id = int(frm2)
             
         else:
             # 10 digit special case
             frm3 = str("%02d"%extension)
             self.fullID = int(frm + frm2 + frm3)
+            self.id = int(frm2 + frm3)
         self.watershed = watershed
         self.value = value
         self.extension = extension
@@ -128,9 +133,9 @@ class SiteID(object):
         Returns [str]
         '''
         if self.extension is None:
-            return str("%08d"%self.fullID)
+            return str("%08d"%self.id)
         else:
-            return str("%10d"%self.fullID)
+            return str("%10d"%self.id)
     def __lt__(self,other):
         '''
         Performs a '<' comparison between the calling SiteID and other
@@ -210,7 +215,7 @@ class Site(object):
     Class Variables
     ---------------------------------------------------------------------------
     id [number] : Site's ID
-    latlong [LatLong] : The location of the Site 
+    latLong [LatLong] : The location of the Site 
     z [number] : Unused
     h [number] : Unused
     flowsCon [list] : List of flows connected to the Site
@@ -222,7 +227,7 @@ class Site(object):
     ---------------------------------------------------------------------------
 
     '''
-    def __init__(self,id,lat,long,h,z=0,flC = None):
+    def __init__(self,id,lat,long,h,z=0,flC = None,isl = False):
         '''
         Constructs a new Site object
 
@@ -232,11 +237,13 @@ class Site(object):
         h [number] : Unused
         z [number] : Unused (default = 0)
         flC [list] : List will hold the flows connected to the Site (default = None)
+        isReal [bool]: Is this site a real site with real data yet
         '''
         self.id = id
         self.latLong = LatLong(lat,long)
         self.z = z
         self.h = h
+        self.isReal = isl
         if flC == None:
             self.flowsCon = []
         self.assignedID = -1 # This is what is assigned via algorithm
@@ -559,7 +566,7 @@ class Network(object):
         self.totalSize = 0
         for f in self.flowTable:
             self.totalSize += f.length
-        
+    
     def removeInvolvedFlows(self,site):
         '''
         Removes any flows from the flow table which have 'site' as
@@ -1083,7 +1090,7 @@ if __name__ == "__main__":
     net.recalculateTotalLength()
     
     pSNA(net,SiteID(1001,9999,None),sinks[0])
-    tp = test.TestPrecompiler()
-    tp.create_files(net)
-    Visualizer.create_visuals("Hello")
-
+    DataIO.networkToCSV(net,"C:\\Users\\mpanozzo\\Documents\\SITE_TABLE.csv","C:\\Users\\mpanozzo\\Documents\\FLOW_TABLE.csv")
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("hello")
