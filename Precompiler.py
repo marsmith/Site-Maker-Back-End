@@ -7,7 +7,7 @@ import Dijkstra
 import test
 import Visualizer
 import DataIO
-
+import NetworkCrafter
 
 degree_sign= u'\N{DEGREE SIGN}'
 
@@ -586,23 +586,200 @@ class Network(object):
                 self.flowTable.remove(f)
             else:
                 i += 1
+    def calculateSink(self):
+        '''
+        Calculate the sink for a given network. The sink is the most downstream
+        Site of the entire Network. (If you think of the Network like a tree, it would
+        be the root!)
+
+        net [Network]: Network to perform analysis on
+
+        Returns [Site]: The sink site of a network
+        Raises RuntimeError if the graph has no sink (is invalid)!
+        '''
+
+        kaboodle = []
+        for kit in self.siteTable:
+            if len(kit.flowsCon) == 1:
+                fds = kit.flowsCon[0].downstreamSite
+                if fds == kit:
+                    # This site is downstream and is the only downstream site left
+                    kaboodle.append(kit)
+        if len(kaboodle) != 1:
+            raise RuntimeError("ERROR: calculateSink: Detected invalid graph")
+        return kaboodle 
+
+    def calculateUpstreamDistances(self):
+        '''
+        Recalculates the upstream distances for each Site in a Network starting from each faucet 
+        (furthest sites from the sink, dendrites)
         
 
-def importJSON(filepath):
-    '''
-    Will import a dictionary from a JSON file
+        net [Network]: Network to perform operations on.
+        faucets [List(Of Site)]: A premade list of faucets used to complete method
+        
+        Returns [None]
+        Raises RuntimeError if there is a multiple sink situation
+        '''
+        faucets = self.calculateFaucets()
+        # Written by Nicole and Marcus
+        queue = list(faucets)
+        while len(queue) >= 1:
+            u = queue.pop(0)
+            cs = u.connectedSites()
+            cntr = 0
+            for con in cs:
+                if con[1] == UPSTREAM_CON:
+                    cntr += 1
+                    if con[0].pendingUpstream == 0:
+                        cntr -= 1
+            u.pendingUpstream = cntr
+            if u.id == 32:
+                print("hey")
+            if u.pendingUpstream > 0:
+                # This site is not ready for assignment
+                # Re-add it to the queue at the end
+                queue.append(u)
+                continue
+            totalUp = 0
+            totalDown = 0        
+            dcon = None
+            if len(cs) == 1:
+                # This is a true faucet            
+                if cs[0][1] == DOWNSTREAM_CON:
+                    dcon = cs[0][2]                
+                else:
+                    break # This is the sink
+                # Append downstream site if not already in the queue
+                if cs[0][0] not in queue:
+                    queue.append(cs[0][0])
+            else:            
+                for entry in cs:
+                    if entry[1] == DOWNSTREAM_CON:
+                        if dcon is None:
+                            # add to totalDown
+                            totalDown += entry[2].length
+                            dcon = entry[2]
+                            # Append downstream site if not already in the queue
+                            if entry[0] not in queue:
+                                queue.append(entry[0])
+                    else:                   
+                        totalUp += entry[2].thisAndUpstream
+                totalDown += totalUp
+                if dcon is None:
+                    # Reached the end
+                    raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
+                else:
+                    dcon.thisAndUpstream = totalDown 
 
-    filepath [string]: Filepath of the JSON file to import
 
-    Returns [Dictionary(Formatted geoJSON dictionary)]: A formatted geoJSON dictionary in python!
-    '''
-    try:
-        f = open(filepath,"r").read()
-        y = json.loads(f)
-        return y
-    except IOError as e:
-        print(e)
-        return None
+    def calculateFaucets(self):    
+        '''
+        Calculate the faucets for a given network. The 'faucets' are the sources of
+        the water network. (If you think of the network as a tree, these would be the outermost
+        leaf nodes)
+
+        net [Network]: Network to perform analysis on.
+        
+        Returns List(Of Site): List of sites at the upstream-most areas of a network (faucets).
+        '''
+        faucets = []
+        for s in self.siteTable:
+            if len(s.flowsCon) == 1 and s.flowsCon[0].upstreamSite == s:
+                # s is a faucet (the most upstream on a particular branch)
+                faucets.append(s)
+        return faucets
+    def positionalEqualityList(self):
+        '''
+        Determines all sites with positional equality
+
+        
+
+        Returns [List(Of Site)]: List of sites with positional equality
+        '''
+        l = []
+        for site in net.siteTable:
+            for situ in net.siteTable:
+                if site == situ:
+                    continue
+                elif site.hasPositionalEquality(situ):
+                    l.append((site,situ))
+        return l
+    def setupSiteSafety(self):
+        '''
+        Will calculate the pending upstream number for every site in the sitetable
+
+        net [Network]: The network to lookup sites in site-table.
+
+        Returns [None]
+        
+        Notes: Do NOT call this method outside of preconfigured use. It will mess up the
+        algorithm.
+        '''
+        for s in self.siteTable:
+            s.calculatePendingUpstream()
+    def navigateToNearestConfluence(self,site):
+        '''
+        Will navigate to the nearest confluence. Returns the last flow which allowed reaching the
+        confluence. 
+
+        net [Network]: Network to perform analysis on
+        site [Site]: Site to start operation from.
+
+        Returns [Site]: Nearest confluence to argument 'site'
+        Raises RuntimeWarning if 'site' is not in sitetable
+        '''
+        if not site in self.siteTable:
+            raise RuntimeWarning("WARNING navigate_nearestConfluence() failed; site not in siteTable")
+        s = site
+        startSite = site
+        flag = True
+        rtrnFlow = None
+        while flag:
+            cs = s.connectedSites()
+            dsCons = []
+            for conTup in cs:
+                if conTup[1] == DOWNSTREAM_CON:
+                    dsCons.append(conTup)
+            if len(dsCons) != 1 or (len(cs) == 3 and  not s == startSite):
+                # We are at the confluence or have reached the end.
+                return rtrnFlow
+            else:
+                # Keep progressing
+                rtrnFlow = dsCons[0][2]
+                s = dsCons[0][0]
+
+
+    def navigateFurthestUpstream(self,site):
+        '''
+        Will navigate through the network to find the node at the end of a branch
+        by using > operations.
+
+        net [Network]: Network to perform analysis on.
+        site [Site]: Site to start operation from.
+        
+        Returns [Site]: Furthest upstream site.
+        '''
+        sInvest = site
+        flag = True
+        while flag:
+            cs = sInvest.connectedSites()
+            flup = None        
+            for con in cs:
+                # If the connection is upstream it is pursuable
+                if con[1] == UPSTREAM_CON:                
+                    if flup is None:
+                        flup = con[2]
+                    else:
+                        if con[2] < flup:
+                            flup = con[2]
+            if flup is None:
+                # We have reached the upmost area on the branch
+                flag = False
+                break
+            sInvest = flup.upstreamSite
+        return sInvest
+
 
 # Will return the site which either has positional eq with "site" or site itself
 def peq(siteList,site):
@@ -620,224 +797,6 @@ def peq(siteList,site):
         if e.hasPositionalEquality(site):
             return e
     return site
-
-
-def isolateNet(jsonDict,checkName=False):
-    '''
-    Isolate a network from a geoJSON dictionary (Give the fields we want and put into a class).
-    Will consolodate the network upon creation to save time
-
-    jsonDic [Dictionary]: The Dictionary provided from importing a json file
-    checkName: [bool]: Should we include name fields in our network for flows/sites
-
-    Returns [Network] An isolated network from JSON dictionary.
-    '''
-
-    fList = jsonDict["features"]
-    linesList = []
-    sitesList = []
-    siteCounter = 0
-
-    for geomObj in fList:
-        coordList = geomObj['geometry']['coordinates']
-        upPoint = coordList[0]
-        downPoint = coordList[len(coordList) - 1]
-        theID = geomObj['properties']['OBJECTID']
-        rc = geomObj['properties']['ReachCode']
-        length = geomObj['properties']['LengthKM']
-
-        if checkName:
-            name = str(geomObj['properties']['GNIS_Name'])
-            # If name is blank
-            if len(name.strip()) == 0:
-                name = None
-        else:
-            name = None
-
-        upSite = None
-        downSite = None
-        if geomObj['geometry']['type'] == "MultiLineString":
-            # We have a buggy entry, take the first entry only
-            for fi in range(len(coordList)):
-                upSite = Site(siteCounter,coordList[fi][0][0],coordList[fi][0][1],coordList[fi][0][3])
-                upGood = peq(sitesList,upSite)
-                if upGood == upSite:
-                    siteCounter += 1
-                    sitesList.append(upSite)
-
-                eI = len(coordList[fi]) - 1
-                # Take the last entry of the last line segment
-                downSite = Site(siteCounter,coordList[fi][eI][0],coordList[fi][eI][1],coordList[fi][eI][3])
-                downGood = peq(sitesList,downSite)
-                if downGood == downSite:
-                    siteCounter += 1                
-                    sitesList.append(downSite)
-                
-                fl2Add = Flow(theID,upGood,downGood,length,rc,name)    
-                upGood.addFlow(fl2Add)
-                downGood.addFlow(fl2Add)                
-                linesList.append(fl2Add)
-
-        elif geomObj['geometry']['type'] == "LineString":
-            upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
-            upGood = peq(sitesList,upSite)
-            if upGood == upSite:
-                siteCounter += 1
-                sitesList.append(upSite)
-            downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
-            downGood = peq(sitesList,downSite)
-            if downGood == downSite:
-                siteCounter += 1                
-                sitesList.append(downSite)
-
-            
-            fl2Add = Flow(theID,upGood,downGood,length,rc,name)    
-            upGood.addFlow(fl2Add)
-            downGood.addFlow(fl2Add)            
-            linesList.append(fl2Add)
-        else:
-            print("ERROR: Unknown object type encountered")
-            raise RuntimeError()     
-        
-    
-    return Network(linesList,sitesList)
-
-
-def calculateSink(net):
-    '''
-    Calculate the sink for a given network. The sink is the most downstream
-    Site of the entire Network. (If you think of the Network like a tree, it would
-    be the root!)
-
-    net [Network]: Network to perform analysis on
-
-    Returns [Site]: The sink site of a network
-    Raises RuntimeError if the graph has no sink (is invalid)!
-    '''
-    kaboodle = []
-    for kit in net.siteTable:
-        if len(kit.flowsCon) == 1:
-            fds = kit.flowsCon[0].downstreamSite
-            if fds == kit:
-                # This site is downstream and is the only downstream site left
-                kaboodle.append(kit)
-    if len(kaboodle) != 1:
-        raise RuntimeError("ERROR: calculateSink: Detected invalid graph")
-    return kaboodle
-
-def calculateFaucets(net):    
-    '''
-    Calculate the faucets for a given network. The 'faucets' are the sources of
-    the water network. (If you think of the network as a tree, these would be the outermost
-    leaf nodes)
-
-    net [Network]: Network to perform analysis on.
-    
-    Returns List(Of Site): List of sites at the upstream-most areas of a network (faucets).
-    '''
-    faucets = []
-    for s in net.siteTable:
-        if len(s.flowsCon) == 1 and s.flowsCon[0].upstreamSite == s:
-            # s is a faucet (the most upstream on a particular branch)
-            faucets.append(s)
-    return faucets
-
-
-def setupSiteSafety(net):
-    '''
-    Will calculate the pending upstream number for every site in the sitetable
-
-    net [Network]: The network to lookup sites in site-table.
-
-    Returns [None]
-    
-    Notes: Do NOT call this method outside of preconfigured use. It will mess up the
-    algorithm.
-    '''
-    for s in net.siteTable:
-        s.calculatePendingUpstream()
-
-
-
-def calculateUpstreamDistances(net,faucets):
-    '''
-    Recalculates the upstream distances for each Site in a Network starting from each faucet 
-    (furthest sites from the sink, dendrites)
-    
-
-    net [Network]: Network to perform operations on.
-    faucets [List(Of Site)]: A premade list of faucets used to complete method
-    
-    Returns [None]
-    Raises RuntimeError if there is a multiple sink situation
-    '''
-    # Written by Nicole and Marcus
-    queue = list(faucets)
-    while len(queue) >= 1:
-        u = queue.pop(0)
-        cs = u.connectedSites()
-        cntr = 0
-        for con in cs:
-            if con[1] == UPSTREAM_CON:
-                cntr += 1
-                if con[0].pendingUpstream == 0:
-                    cntr -= 1
-        u.pendingUpstream = cntr
-        if u.id == 32:
-            print("hey")
-        if u.pendingUpstream > 0:
-            # This site is not ready for assignment
-            # Re-add it to the queue at the end
-            queue.append(u)
-            continue
-        totalUp = 0
-        totalDown = 0        
-        dcon = None
-        if len(cs) == 1:
-            # This is a true faucet            
-            if cs[0][1] == DOWNSTREAM_CON:
-                dcon = cs[0][2]                
-            else:
-                break # This is the sink
-            # Append downstream site if not already in the queue
-            if cs[0][0] not in queue:
-                queue.append(cs[0][0])
-        else:            
-            for entry in cs:
-                if entry[1] == DOWNSTREAM_CON:
-                    if dcon is None:
-                        # add to totalDown
-                        totalDown += entry[2].length
-                        dcon = entry[2]
-                        # Append downstream site if not already in the queue
-                        if entry[0] not in queue:
-                            queue.append(entry[0])
-                else:                   
-                    totalUp += entry[2].thisAndUpstream
-            totalDown += totalUp
-            if dcon is None:
-                # Reached the end
-                raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
-            else:
-                dcon.thisAndUpstream = totalDown 
-
-
-def positionalEqualityList(net):
-    '''
-    Determines all sites with positional equality
-
-    net [Network]: Network whose sites we will compare locations
-
-    Returns [List(Of Site)]: List of sites with positional equality
-    '''
-    l = []
-    for site in net.siteTable:
-        for situ in net.siteTable:
-            if site == situ:
-                continue
-            elif site.hasPositionalEquality(situ):
-                l.append((site,situ))
-    return l
 
 
 def removeUseless(net):
@@ -882,8 +841,6 @@ def removeUseless(net):
             net.flowTable.append(fl2Add)
         else:
             i += 1
-
-
 
 
 def pSNA(net,maxDownstreamID,sinkSite = None):
@@ -1000,69 +957,6 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             idNext = newID
 
 
-def navigateToNearestConfluence(net,site):
-    '''
-    Will navigate to the nearest confluence. Returns the last flow which allowed reaching the
-    confluence. 
-
-    net [Network]: Network to perform analysis on
-    site [Site]: Site to start operation from.
-
-    Returns [Site]: Nearest confluence to argument 'site'
-    Raises RuntimeWarning if 'site' is not in sitetable
-    '''
-    if not site in net.siteTable:
-        raise RuntimeWarning("WARNING navigate_nearestConfluence() failed; site not in siteTable")
-    s = site
-    startSite = site
-    flag = True
-    rtrnFlow = None
-    while flag:
-        cs = s.connectedSites()
-        dsCons = []
-        for conTup in cs:
-            if conTup[1] == DOWNSTREAM_CON:
-                dsCons.append(conTup)
-        if len(dsCons) != 1 or (len(cs) == 3 and  not s == startSite):
-            # We are at the confluence or have reached the end.
-            return rtrnFlow
-        else:
-            # Keep progressing
-            rtrnFlow = dsCons[0][2]
-            s = dsCons[0][0]
-
-
-def navigateFurthestUpstream(net,site):
-    '''
-    Will navigate through the network to find the node at the end of a branch
-    by using > operations.
-
-    net [Network]: Network to perform analysis on.
-    site [Site]: Site to start operation from.
-    
-    Returns [Site]: Furthest upstream site.
-    '''
-    sInvest = site
-    flag = True
-    while flag:
-        cs = sInvest.connectedSites()
-        flup = None        
-        for con in cs:
-            # If the connection is upstream it is pursuable
-            if con[1] == UPSTREAM_CON:                
-                if flup is None:
-                    flup = con[2]
-                else:
-                    if con[2] < flup:
-                        flup = con[2]
-        if flup is None:
-            # We have reached the upmost area on the branch
-            flag = False
-            break
-        sInvest = flup.upstreamSite
-    return sInvest
-        
-
 def getLowestUpstreamNumber(net,site):
     '''
     Gets the least (in number terms) upstream ID from a particular
@@ -1075,43 +969,3 @@ def getLowestUpstreamNumber(net,site):
     '''
     return navigateFurthestUpstream(net,site).assignedID
 
-# -------------------------------------------------------
-# MAIN                  MAIN                    MAIN
-# -------------------------------------------------------
-
-if __name__ == "__main__":
-    
-    dictt = importJSON("Data/OneidaFlowSimplified.json")
-    print("Imported Network")
-    net = isolateNet(dictt,True) 
-    print("Isolated Network")
-    DataIO.networkToCSV(net,"C:\\Users\\mpanozzo\\Documents\\SITE_TABLE.csv","C:\\Users\\mpanozzo\\Documents\\FLOW_TABLE.csv")
-    print("Exported Network")
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("hello")
-    print("Visualized Network")
-    
-    '''
-    sinks = calculateSink(net)
-    print("Calculated Sink")
-    #removeUseless(net)
-    assert(len(sinks) == 1)
-    setupSiteSafety(net)
-    print("Site Safety Confl Network")
-    faucets = calculateFaucets(net)
-    print("Calculated Faucets")
-    calculateUpstreamDistances(net,faucets)
-    print("Calculated Distances Up")
-    net.recalculateTotalLength()
-    print("Recalc Total Network Length")
-    
-    pSNA(net,SiteID(1001,9999,None),sinks[0])
-    print("Completed Algorithm")
-    DataIO.networkToCSV(net,"C:\\Users\\mpanozzo\\Documents\\SITE_TABLE.csv","C:\\Users\\mpanozzo\\Documents\\FLOW_TABLE.csv")
-    print("Exported Network")
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("hello")
-    print("Visualized Network")
-'''
