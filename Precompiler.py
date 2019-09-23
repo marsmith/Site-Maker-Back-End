@@ -255,23 +255,7 @@ class Site(object):
         self.pendingUpstream = -1
         self.downwardRefID = None # This is what is stored as reference to the next downstream ID
                                     # For resolving assignments in the Plotter
-    def __init__(self,oldSite):
-        '''
-        Constructs a new Site object
-
-        oldSite [Site]: Old site to make a copy of
-        '''
-        self.id = oldSite.id
-        self.latLong = copy.deepcopy(oldSite.latLong)
-        self.z = oldSite.z
-        self.h = oldSite.h
-        self.isReal = oldSite.isl
-        self.flowsCon = copy.deepcopy(oldSite.flowsCon)
-        self.assignedID = copy.deepcopy(oldSite.assignedID) 
-        self.pendingUpstream = oldSite.pendingUpstream
-        self.downwardRefID = copy.deepcopy(oldSite.downwardRefID) 
-
-
+    
     def __eq__(self,other):
         '''
         Performs a '==' comparison between the calling Site and other
@@ -625,8 +609,7 @@ class Network(object):
                 if fds == kit:
                     # This site is downstream and is the only downstream site left
                     kaboodle.append(kit)
-        if len(kaboodle) != 1:
-            raise RuntimeError("ERROR: calculateSink: Detected invalid graph")
+        
         return kaboodle 
 
     def calculateUpstreamDistances(self):
@@ -647,6 +630,7 @@ class Network(object):
         while len(queue) >= 1:
             u = queue.pop(0)
             cs = u.connectedSites()
+            print(u)
             cntr = 0
             for con in cs:
                 if con[1] == UPSTREAM_CON:
@@ -817,20 +801,23 @@ class Network(object):
         while len(queue) > 0:
             u = queue.pop(0)
             st.append(u)
+            u.assignedID = 0
             for conTup in u.connectedSites():
-                if conTup[1] == UPSTREAM_CON and not conTup[2].unadressable:
+                if conTup[1] == UPSTREAM_CON and conTup[0].assignedID < 0:
                     # Flow is reachable and addressable. Add to traversal
                     ft.append(conTup[2])
-                    queue.insert(1,conTup[2].upstreamSite)
+                    queue.insert(1,conTup[0])
                 elif conTup[1] == UPSTREAM_CON:
                     ft.append(conTup[2])
                     # Flow is not addressable but still exists, add it anyway
-        
+        for site in st:
+            site.assignedID = -1
+        net = Network(ft,st)
+        net.recalculateTotalLength()
+        net.unitLength = int(net.totalSize / 10)
+        return net
 
-                    
-                    
         
-
 # Will return the site which either has positional eq with "site" or site itself
 def peq(siteList,site):
     '''
@@ -891,6 +878,7 @@ def removeUseless(net):
             net.flowTable.append(fl2Add)
         else:
             i += 1
+
 
 
 def pSNA(net,maxDownstreamID,sinkSite = None):

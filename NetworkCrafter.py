@@ -2,7 +2,7 @@
 Module for creating networks based on the
 areas between real sites in the NHD & Sitefile combo.
 '''
-from Precompiler import *
+import Precompiler
 from MultiNetwork import *
 
 def importJSON(filepath):
@@ -79,19 +79,20 @@ def isolateNet(jsonDict,checkName=False):
                 linesList.append(fl2Add)
 
         elif geomObj['geometry']['type'] == "LineString":
-            upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
-            upGood = peq(sitesList,upSite)
+            
+            upSite = Precompiler.Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
+            upGood = Precompiler.peq(sitesList,upSite)
             if upGood == upSite:
                 siteCounter += 1
                 sitesList.append(upSite)
-            downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
-            downGood = peq(sitesList,downSite)
+            downSite = Precompiler.Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
+            downGood = Precompiler.peq(sitesList,downSite)
             if downGood == downSite:
                 siteCounter += 1                
                 sitesList.append(downSite)
 
             
-            fl2Add = Flow(theID,upGood,downGood,length,rc,name)    
+            fl2Add = Precompiler.Flow(theID,upGood,downGood,length,rc,name)    
             upGood.addFlow(fl2Add)
             downGood.addFlow(fl2Add)            
             linesList.append(fl2Add)
@@ -100,7 +101,7 @@ def isolateNet(jsonDict,checkName=False):
             raise RuntimeError()     
         
     
-    return Network(linesList,sitesList)
+    return Precompiler.Network(linesList,sitesList)
 
 
 def generateNetworks(fp):    
