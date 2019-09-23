@@ -1146,4 +1146,3 @@ if __name__ == "__main__":
     # tp = test.TestPrecompiler()
     # tp.create_files(net)
     # Visualizer.create_visuals("Hello")
-
