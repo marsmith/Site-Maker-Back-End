@@ -440,6 +440,7 @@ class Flow(object):
         self.thisAndUpstream = self.length # This and upstream length
         self.unadressable = False # If a flow leads to a site which has already been ID'd, it must be part of the closing flow of a loop
                                 # It has no allocated address space and must be ignored
+        self.straihler = -1
     def __lt__(self,other):
         '''
         Performs an Flow priority comparision between the calling Site and other
@@ -783,7 +784,58 @@ def removeUseless(net):
         else:
             i += 1
 
+def calcStraihler(net):
+    faucets = calculateFaucets(net)
+    queue = []
+    for flow in net.flowTable:
+        if flow.upstreamSite in faucets:
+            flow.straihler = 1
+            if flow.downstreamSite not in queue:
+                queue.append(flow.downstreamSite)
+    
+    sink = calculateSink(net)[0]
 
+    while(queue):
+        curr = queue.pop(0)
+        print(curr)
+        if curr.id == sink.id:
+            break
+        down = []
+        up = []
+        for flow in net.flowTable:
+            if flow.downstreamSite == curr:
+                down.append(flow)
+
+            if flow.upstreamSite == curr:
+                up.append(flow)
+        # if curr.id == 13:
+        #     print()
+
+        if len(down) == 2 and down[0].upstreamSite == down[1].upstreamSite:
+            for f in down:
+                if f.straihler == -1:
+                    down.remove(f)
+        flag = False
+        for flow in down:
+            if flow.straihler == -1:
+                queue.append(curr)
+                flag = True
+                break
+        
+        if flag == True:
+            continue
+        vals = [f.straihler for f in down]
+        if len(vals) > 1 and all(elem == vals[0] for elem in vals):
+            for f in up:
+                f.straihler = vals[0] + 1
+                if f.downstreamSite not in queue:
+                    queue.append(f.downstreamSite)
+        else:
+            for f in up:
+                f.straihler = max(vals)
+                if f.downstreamSite not in queue:
+                    queue.append(f.downstreamSite)
+            
 
 
 def pSNA(net,maxDownstreamID,sinkSite = None):
@@ -970,7 +1022,7 @@ def getLowestUpstreamNumber(net,site):
 # -------------------------------------------------------
 
 if __name__ == "__main__":
-    dictt = importJSON("Data/SmallNet001.json")
+    dictt = importJSON("Data/TrickyLoops001.json")
     net = isolateNet(dictt,True)    
     #net.unitLength = 0.1 # km
     sinks = calculateSink(net)
@@ -978,11 +1030,12 @@ if __name__ == "__main__":
     assert(len(sinks) == 1)
     setupSiteSafety(net)
     faucets = calculateFaucets(net)
+    calcStraihler(net)
     calculateUpstreamDistances(net,faucets)
-    net.recalculateTotalLength()
+    # net.recalculateTotalLength()
     
-    pSNA(net,SiteID(1001,9999,None),sinks[0])
-    tp = test.TestPrecompiler()
-    tp.create_files(net)
-    Visualizer.create_visuals("Hello")
+    # pSNA(net,SiteID(1001,9999,None),sinks[0])
+    # tp = test.TestPrecompiler()
+    # tp.create_files(net)
+    # Visualizer.create_visuals("Hello")
 

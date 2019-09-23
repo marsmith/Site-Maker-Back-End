@@ -32,7 +32,7 @@ class TestPrecompiler(unittest.TestCase):
         fileobject.close()
         fileobject = open("Flows.txt", "w")
         for flow in net.flowTable:
-            string = "%d, %d, %f, %f\n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream)
+            string = "%d, %d, %f, %f, %d \n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
             fileobject.write(string)
         fileobject.close()
 
@@ -87,7 +87,7 @@ class TestPrecompiler(unittest.TestCase):
         self.verifyAllNumbered(netTup[0])
         self.SiteLoader("Data/snapped-site-test-subset.json")
         self.create_files(netTup[0])
-        create_visuals("SmallNet001")
+        #create_visuals("SmallNet001")
         
 
 
@@ -95,15 +95,16 @@ class TestPrecompiler(unittest.TestCase):
         netTup = self.verifyImport('Data/TrickyLoops001.json')
         maxID = SiteID(1001)
         pSNA(netTup[0],maxID,netTup[1])
-        
+        calcStraihler(netTup[0])
         self.verifyAllNumbered(netTup[0])
         self.create_files(netTup[0])
-        #create_visuals("TrickyLoops001")
+        create_visuals("TrickyLoops001")
         
 
     def test_loop002(self):
         netTup = self.verifyImport('Data/LoopTest001-NHDSubset.json')
         maxID = SiteID(1001)
+        #calcStraihler(netTup[0])
         pSNA(netTup[0],maxID,netTup[1])
         
         self.verifyAllNumbered(netTup[0])

@@ -48,6 +48,7 @@ def create_visuals(test_name):
         flow[1] = int(flow[1])
         flow[2] = float(flow[2])
         flow[3] = float(flow[3])
+        flow[4] = int(flow[4])
         flows.append(flow)
 
     midpoints = []
@@ -63,7 +64,7 @@ def create_visuals(test_name):
 
     Xm = [midpoints[k][1] for k in range(len(midpoints))]
     Ym = [midpoints[k][2] for k in range(len(midpoints))]
-    flow_lengths = ["This: " + str(flows[k][2]) + "\t Upstream: " + str(flows[k][3]) for k in range(len(flows))]
+    flow_lengths = ["This: " + str(flows[k][2]) + "\t Upstream: " + str(flows[k][3]) + "\t straihler: " + str(flows[k][4])for k in range(len(flows))]
     midpoint_trace = go.Scatter(
         x=Xm, y=Ym,
         mode='markers',
