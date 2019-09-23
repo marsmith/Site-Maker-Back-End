@@ -3,7 +3,7 @@ import json
 import numpy
 import sys
 import Dijkstra
-
+import copy
 import test
 import Visualizer
 import DataIO
@@ -128,6 +128,9 @@ class SiteID(object):
         self.watershed = watershed
         self.value = value
         self.extension = extension
+
+    
+    
     def __str__(self):
         '''
         Returns a string version of the SiteID. Preserves all digits!
@@ -252,6 +255,23 @@ class Site(object):
         self.pendingUpstream = -1
         self.downwardRefID = None # This is what is stored as reference to the next downstream ID
                                     # For resolving assignments in the Plotter
+    def __init__(self,oldSite):
+        '''
+        Constructs a new Site object
+
+        oldSite [Site]: Old site to make a copy of
+        '''
+        self.id = oldSite.id
+        self.latLong = copy.deepcopy(oldSite.latLong)
+        self.z = oldSite.z
+        self.h = oldSite.h
+        self.isReal = oldSite.isl
+        self.flowsCon = copy.deepcopy(oldSite.flowsCon)
+        self.assignedID = copy.deepcopy(oldSite.assignedID) 
+        self.pendingUpstream = oldSite.pendingUpstream
+        self.downwardRefID = copy.deepcopy(oldSite.downwardRefID) 
+
+
     def __eq__(self,other):
         '''
         Performs a '==' comparison between the calling Site and other
@@ -780,6 +800,36 @@ class Network(object):
             sInvest = flup.upstreamSite
         return sInvest
 
+    def subnetTrace(self,startSite):
+        '''
+        Will navigate through network from startSite and
+        generate a cloned Network from the resulting recursion
+
+        startSite [Site]: Site in Network to start from
+
+        Returns [Network]: Deep Copy of Network based on recursive paths
+        '''
+        ft = [] # New flowtable
+        st = [] # New sitetable        
+        
+        queue = []
+        queue.append(startSite)
+        while len(queue) > 0:
+            u = queue.pop(0)
+            st.append(u)
+            for conTup in u.connectedSites():
+                if conTup[1] == UPSTREAM_CON and not conTup[2].unadressable:
+                    # Flow is reachable and addressable. Add to traversal
+                    ft.append(conTup[2])
+                    queue.insert(1,conTup[2].upstreamSite)
+                elif conTup[1] == UPSTREAM_CON:
+                    ft.append(conTup[2])
+                    # Flow is not addressable but still exists, add it anyway
+        
+
+                    
+                    
+        
 
 # Will return the site which either has positional eq with "site" or site itself
 def peq(siteList,site):

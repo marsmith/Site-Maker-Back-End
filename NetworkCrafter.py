@@ -3,6 +3,7 @@ Module for creating networks based on the
 areas between real sites in the NHD & Sitefile combo.
 '''
 from Precompiler import *
+from MultiNetwork import *
 
 def importJSON(filepath):
     '''
@@ -103,17 +104,36 @@ def isolateNet(jsonDict,checkName=False):
 
 
 def generateNetworks(fp):    
-    
+    '''
+    Generates networks based on a filepath for geoJSON data.
+
+    fp [string]: Filepath of data (.json) to import
+
+    Returns [MultiNetwork]: Multiple Network container structure (could also have only 1 net inside it)
+    '''
     dictt = importJSON(fp)
     net = isolateNet(dictt,True) 
     sinks = net.calculateSink()    
     if len(sinks) > 1:
         # We will have more than one network. Lets find them all
+        lnet = []
+        for s in sinks:
+            netti = net.subnetTrace(s)
+            netti.setupSiteSafety()
+            faucets = netti.calculateFaucets()
+            netti.calculateUpstreamDistances()
+            netti.recalculateTotalLength()
+            lnet.append(netti)
+            
+        multi = MultiNetwork(lnet,None)
+        return multi
+
         pass
     else:
         net.setupSiteSafety()
         faucets = net.calculateFaucets()
         net.calculateUpstreamDistances()
         net.recalculateTotalLength()
-        return net
+        multi = MultiNetwork([net],None)
+        return multi
     
