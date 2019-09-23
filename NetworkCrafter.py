@@ -36,6 +36,7 @@ def isolateNet(jsonDict,checkName=False):
     fList = jsonDict["features"]
     linesList = []
     sitesList = []
+    sitesDict = dict()
     siteCounter = 0
 
     for geomObj in fList:
@@ -60,7 +61,12 @@ def isolateNet(jsonDict,checkName=False):
             # We have a buggy entry, take the first entry only
             for fi in range(len(coordList)):
                 upSite = Site(siteCounter,coordList[fi][0][0],coordList[fi][0][1],coordList[fi][0][3])
-                upGood = peq(sitesList,upSite)
+                if str(upSite.latLong) in sitesDict:
+                    upGood = sitesDict[str(upSite.latLong)]
+                else:
+                    upGood = upSite
+                    sitesDict[str(upSite.latLong)] = upSite
+
                 if upGood == upSite:
                     siteCounter += 1
                     sitesList.append(upSite)
@@ -68,7 +74,12 @@ def isolateNet(jsonDict,checkName=False):
                 eI = len(coordList[fi]) - 1
                 # Take the last entry of the last line segment
                 downSite = Site(siteCounter,coordList[fi][eI][0],coordList[fi][eI][1],coordList[fi][eI][3])
-                downGood = peq(sitesList,downSite)
+                if str(downSite.latLong) in sitesDict:
+                    downGood = sitesDict[str(downSite.latLong)]
+                else:
+                    downGood = downSite
+                    sitesDict[str(downSite.latLong)] = downSite
+                
                 if downGood == downSite:
                     siteCounter += 1                
                     sitesList.append(downSite)
@@ -79,14 +90,25 @@ def isolateNet(jsonDict,checkName=False):
                 linesList.append(fl2Add)
 
         elif geomObj['geometry']['type'] == "LineString":
-            
             upSite = Precompiler.Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
-            upGood = Precompiler.peq(sitesList,upSite)
+            if str(upSite.latLong) in sitesDict:
+                upGood = sitesDict[str(upSite.latLong)]
+            else:
+                upGood = upSite
+                sitesDict[str(upSite.latLong)] = upSite
+
             if upGood == upSite:
                 siteCounter += 1
                 sitesList.append(upSite)
+
+            
             downSite = Precompiler.Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
-            downGood = Precompiler.peq(sitesList,downSite)
+            if str(downSite.latLong) in sitesDict:
+                downGood = sitesDict[str(downSite.latLong)]
+            else:
+                downGood = downSite
+                sitesDict[str(downSite.latLong)] = downSite
+            
             if downGood == downSite:
                 siteCounter += 1                
                 sitesList.append(downSite)
