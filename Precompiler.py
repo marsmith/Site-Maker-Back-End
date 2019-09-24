@@ -631,7 +631,7 @@ class Network(object):
         while len(queue) >= 1:
             u = queue.pop(0)
             cs = u.connectedSites()
-            print(u)
+            
             cntr = 0
             for con in cs:
                 if con[1] == UPSTREAM_CON:

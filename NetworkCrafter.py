@@ -137,26 +137,21 @@ def generateNetworks(fp):
     dictt = importJSON(fp)
     net = isolateNet(dictt,True) 
     sinks = net.calculateSink()    
+    net.setupSiteSafety()
+    net.calculateFaucets()
+    net.calculateUpstreamDistances()
     if len(sinks) > 1:
         # We will have more than one network. Lets find them all
         lnet = []
         for s in sinks:
-            netti = net.subnetTrace(s)
-            netti.setupSiteSafety()
-            faucets = netti.calculateFaucets()
-            netti.calculateUpstreamDistances()
+            netti = net.subnetTrace(s)    
             netti.recalculateTotalLength()
             lnet.append(netti)
-            
+        lnet.sort(key= lambda netti:netti.totalSize,reverse= True)            
         multi = MultiNetwork(lnet,None)
         return multi
-
-        pass
     else:
-        net.setupSiteSafety()
-        faucets = net.calculateFaucets()
-        net.calculateUpstreamDistances()
-        net.recalculateTotalLength()
+        
         multi = MultiNetwork([net],None)
         return multi
     
