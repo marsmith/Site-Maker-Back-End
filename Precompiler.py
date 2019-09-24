@@ -813,7 +813,11 @@ class Network(object):
                     # Flow is not addressable but still exists, add it anyway
         for site in st:
             site.assignedID = -1
-        net = Network(ft,st)
+        ftCopy = []
+        stCopy = []
+        
+
+        net = Network(ftCopy,stCopy)
         net.recalculateTotalLength()
         net.unitLength = int(net.totalSize / 10)
         return net

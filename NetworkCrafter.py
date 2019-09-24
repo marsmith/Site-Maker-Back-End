@@ -120,9 +120,7 @@ def isolateNet(jsonDict,checkName=False):
             linesList.append(fl2Add)
         else:
             print("ERROR: Unknown object type encountered")
-            raise RuntimeError()     
-        
-    
+            raise RuntimeError()       
     return Precompiler.Network(linesList,sitesList)
 
 
