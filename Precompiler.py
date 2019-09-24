@@ -832,7 +832,7 @@ class Network(object):
         # How do we deepcopy the sites and flows without getting into a recursive
         # nightmare. This is the main task for here
 
-        net = Network(ftCopy,stCopy)
+        net = Network(ft,st)
         net.recalculateTotalLength()
         net.unitLength = int(net.totalSize / 10)
         return net
