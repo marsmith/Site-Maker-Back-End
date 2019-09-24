@@ -298,6 +298,15 @@ class Site(object):
                 
         self.pendingUpstream = cntr
 
+    def emptyCopy(self):
+        '''
+        Will create a clone of the Site object but without flowConInfo
+
+        Returns [Site] copy (in separte memory) of this object
+        '''        
+        s2 = Site(self.id,self.latLong.lat,self.latLong.long,self.h,self.z)
+        return s2
+
     def hasAssignedIDEquality(self,other):
         '''
         Performs an ID comparison between the calling Site and other
@@ -462,6 +471,10 @@ class Flow(object):
         Returns [bool] : True if self has a lower priority than other. False otherwise.
         '''
         return self.hasHigherPriority(other)
+
+    def emptyCopy(self):
+        fl2 = Flow(self.id,self.upstreamSite.emptyCopy(),self.downstreamSite.emptyCopy(),self.length,self.reachCode,self.name)
+        return fl2
 
     def hasHigherPriority(self,otherFlow):
         '''
@@ -816,6 +829,8 @@ class Network(object):
         ftCopy = []
         stCopy = []
         
+        # How do we deepcopy the sites and flows without getting into a recursive
+        # nightmare. This is the main task for here
 
         net = Network(ftCopy,stCopy)
         net.recalculateTotalLength()
