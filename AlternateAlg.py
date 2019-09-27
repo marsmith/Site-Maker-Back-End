@@ -1,6 +1,12 @@
 import shapefile
 from Precompiler import *
 
+def getPosHash(point,index= None):
+    if index is None:
+
+        return "{0},{1}".format(point[0],point[1])
+    else:
+        return "{0},{1}:{2}".format(point[0],point[1],index)
 
 def importShapefile_TriDict(path):
     '''
@@ -25,7 +31,7 @@ def importShapefile_TriDict(path):
         Returns [None]
         '''
         for i in range(limit):        
-            hstr = "{0},{1}:{2}".format(point[0],point[1],i)
+            hstr = getPosHash(point,i)
             if not hstr in dict.keys():
                 # Safe to insert, it doesnt exist
                 dict[hstr] = shape
@@ -46,7 +52,7 @@ def importShapefile_TriDict(path):
         '''
         l = []
         for i in range(limit):        
-            hstr = "{0},{1}:{2}".format(point[0],point[1],i)
+            hstr = getPosHash(point,i)
             try:
                 l.append(dict[hstr])
             except Exception as p:
@@ -79,7 +85,9 @@ def importShapefile_TriDict(path):
     
     return (startPointDict,endPointDict,reachCodeDict)
 
-def findConnected(path,reachCode):
+
+
+def findConnected(tridict,reachCode):
     '''
     Find all the lines connected to the line with the specific reachCode. In essence,
     isolating a Network which can be reached via reachCode.
@@ -89,20 +97,55 @@ def findConnected(path,reachCode):
 
     Returns [Network]: Returns a connected network of Flow lines and fake Sites in between them
     '''
-    # Stage 1: Open the shapefile and get dict info
+    def getTheOthers(dict,point,shaperc,lim=4):
+        l = []
+        for i in range(lim):
+            hashy = getPosHash(point,i)
+            try:
+                obj = dict[hashy]
+                if obj == shaperc:
+                    continue
+                # We found an 'other' that connects here, add it to list
+                l.append(obj)
+            except KeyError as identifier:
+                break
+        return l
+    # Stage 2: Select proper shape based on reachCode
+    try:
+        shprc = tridict[2][reachCode]
+        idCounter = 0
+        siteDict = {}
+        flowDict = {}
+        sp =shprc.shape.points[0] # Tuple of 2
+        ep = shprc.shape.points[len(shprc.shape.points) - 1] # Tuple of 2
+        upSite = Site(idCounter,sp[0],sp[1],0,0)        
+        downSite = Site(idCounter + 1,ep[0],ep[1],0,0)
+        siteDict[getPosHash(sp)] = upSite
+        siteDict[getPosHash(ep)] = downSite
+        
+
+        idCounter += 2
+
+        baseFlow = Flow(shprc.record.GNIS_ID_12,upSite,downSite,shprc.record.LengthKM,reachCode,shprc.record.GNIS_Name)
+        flowDict[reachCode] = baseFlow
+        # Stage 3.2: Now traverse upwards and downwards
+        flag = True
+        focus = shprc
+        while flag:
+            others = getTheOthers(tridict[1],sp,focus)
+            # TODO: Finish the iterative getTheOthers calls for everything upstream and
+            # not alread added into the list
+        
+        
+            
+    except KeyError as identifier:
+        return None
     
 
-    tridict = importShapefile_TriDict(path)
-    # Stage 2: Select proper shape based on reachCode
-    shprc = tridict[2][reachCode]
-
-    # Stage 3: Do finding of all connected line shapes
-
-    ft = []
-    st = []
-        
+    
 
 PATH = "./Data/SELakeOntario/SELakeONtario.shp"
 
 if __name__ == "__main__":
-    net = findConnected(PATH,"02020001000005")
+    tridict = importShapefile_TriDict(PATH)
+    net = findConnected(tridict,"04140101000103")
