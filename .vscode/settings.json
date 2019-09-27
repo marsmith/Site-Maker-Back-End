@@ -12,5 +12,5 @@
     "python.linting.pylintEnabled": false,
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "C:\\Users\\mpanozzo\\AppData\\Local\\Programs\\Python\\Python36\\python.exe"
+    "python.pythonPath": "C:\\Python27\\ArcGIS10.5\\python.exe"
 }
