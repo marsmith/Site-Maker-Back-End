@@ -98,6 +98,9 @@ def findConnected(tridict,reachCode):
     Returns [Network]: Returns a connected network of Flow lines and fake Sites in between them
     '''
     def getTheOthers(dict,point,shaperc,lim=4):
+        '''
+        Returns list of ShapeRecords based on provided dict and template obj
+        '''
         l = []
         for i in range(lim):
             hashy = getPosHash(point,i)
@@ -130,16 +133,82 @@ def findConnected(tridict,reachCode):
         flowDict[reachCode] = baseFlow
         # Stage 3.2: Now traverse upwards and downwards
         flag = True
-        focus = shprc
-        while flag:
+              
+        queuee = [shprc]
+        while len(queuee) > 0:
+            focus = queuee.pop(0)
             others = getTheOthers(tridict[1],sp,focus)
             # TODO: Finish the iterative getTheOthers calls for everything upstream and
             # not alread added into the list
-            
-        
+            if len(others) < 1:
+                
+                continue
+            # Upstream
+            for eachUp in others:
+                spOther = eachUp.shape.points[0]
+                epOther = eachUp.shape.points[1] # ep should be equal to the sp at the top
+                try:
+                    uSite = siteDict[getPosHash(spOther)]
+                except KeyError as ke:   
+                    idCounter += 1                 
+                    uSite = Site(idCounter,spOther[0],spOther[1],0,0)
+                try:
+                    dSite = siteDict[getPosHash(epOther)]
+                except KeyError as ke:
+                    dSite = Site(idCounter + 2,epOther[0],epOther[1],0,0)
+                try:
+                    fl = flowDict[eachUp.record.ReachCode]
+                    # Since it exists, dont add new flow
+                except KeyError as ke:
+                    newFlow = Flow(eachUp.record.GNIS_ID_12,uSite,dSite,eachUp.record.LengthKM,
+                    eachUp.record.ReachCode,eachUp.record.GNIS_Name)
+                    # Flow does not exist, it needs to be added
+                    flowDict[eachUp.record.ReachCode] = newFlow
+                queuee.append(eachUp)
+
+
+        # ------ reset for downstream traversal
+        flag = True
+        queuee = [shprc]
+        while len(queuee) > 0:
+            # Downstream
+            focus = queuee.pop(0)
+            others = getTheOthers(tridict[0],ep,focus)
+            # TODO: Finish the iterative getTheOthers calls for everything upstream and
+            # not alread added into the list
+            if len(others) < 1:
+                continue
+            # Upstream
+            for eachDown in others:
+                spOther = eachDown.shape.points[0]
+                epOther = eachDown.shape.points[1] # ep should be equal to the sp at the top
+                try:
+                    uSite = siteDict[getPosHash(epOther)]
+                except KeyError as ke:   
+                    idCounter += 1                 
+                    uSite = Site(idCounter,spOther[0],spOther[1],0,0)
+                try:
+                    dSite = siteDict[getPosHash(epOther)]
+                except KeyError as ke:
+                    dSite = Site(idCounter + 2,epOther[0],epOther[1],0,0)
+                try:
+                    fl = flowDict[eachUp.record.ReachCode]
+                    # Since it exists, dont add new flow
+                except KeyError as ke:
+                    newFlow = Flow(eachUp.record.GNIS_ID_12,uSite,dSite,eachUp.record.LengthKM,
+                    eachUp.record.ReachCode,eachUp.record.GNIS_Name)
+                    # Flow does not exist, it needs to be added
+                    flowDict[eachUp.record.ReachCode] = newFlow
+                queuee.append(eachDown)
+
+        # FINAL Stage: Return a network given value set in dictionary      
+        netty = Network(flowDict.values(),siteDict.values())
+        return netty
         
             
     except KeyError as identifier:
+        # Error: That reach code is not found in any record!
+        raise RuntimeError("findConnected() Reach Code provided does not exist in table!")
         return None
     
 
