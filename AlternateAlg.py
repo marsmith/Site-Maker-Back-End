@@ -210,7 +210,27 @@ def findConnected(tridict,reachCode):
         # Error: That reach code is not found in any record!
         raise RuntimeError("findConnected() Reach Code provided does not exist in table!")
         return None
-    
+
+def extrapolateFocus(net,path):
+    ''' Will overlay existing sites from sitefile .shp (as specified by path)
+        and will then revise the net.
+
+        net [Network]: Network of existing flowlines and intersections (should be unassigned ID's in sites)
+        path [string]: Path of NYS_sites Shapefile
+
+        Return Tuple(Of Network,Flags As Integer()): Network relegated to the upstream and downstream bounds specified by
+        the incomming data points.  Also returns Flags to detail attributes of the new Network
+        FLAGS ---->
+            0x0000 NO FLAGS
+            0x0001 SCENARIO A: (See Workflow.txt)
+            0x0002 SCENARIO B: 
+            0x0004 SCENARIO C:
+    ''' 
+    # Step 1: Gather geometric data
+    # Step 2: Pass over to QGIS script (python 3.x) or a arcpy script (python 2.x)
+    #           Basically perform either an intersect with features [lines,poinits]
+    # Step 3: Return Network as limited by these points
+    pass
 
     
 
