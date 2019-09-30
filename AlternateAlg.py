@@ -135,6 +135,7 @@ def findConnected(tridict,reachCode):
             others = getTheOthers(tridict[1],sp,focus)
             # TODO: Finish the iterative getTheOthers calls for everything upstream and
             # not alread added into the list
+            
         
         
             
