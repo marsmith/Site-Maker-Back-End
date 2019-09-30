@@ -2,7 +2,7 @@ from Precompiler import *
 import unittest
 import numpy
 from Visualizer import *
-
+from AlternateAlg import *
 
 ''' The best way to do testing will still involve 
 human verification, but this ensures there are no minor bugs
@@ -111,3 +111,8 @@ class TestPrecompiler(unittest.TestCase):
         self.create_files(netTup[0])
         #create_visuals("LoopTest001-NHDSubset")
 
+    def test_shapefilewise(self):
+        PATH = "./Data/SELakeOntario/SELakeONtario.shp"
+        tridict = importShapefile_TriDict(PATH)
+        net = findConnected(tridict,"04140101001065")
+        print(net)

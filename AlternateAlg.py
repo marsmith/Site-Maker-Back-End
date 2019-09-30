@@ -119,90 +119,44 @@ def findConnected(tridict,reachCode):
         idCounter = 0
         siteDict = {}
         flowDict = {}
-        sp =shprc.shape.points[0] # Tuple of 2
-        ep = shprc.shape.points[len(shprc.shape.points) - 1] # Tuple of 2
-        upSite = Site(idCounter,sp[0],sp[1],0,0)        
-        downSite = Site(idCounter + 1,ep[0],ep[1],0,0)
-        siteDict[getPosHash(sp)] = upSite
-        siteDict[getPosHash(ep)] = downSite
         
+        
+        objQueue = [shprc]
 
-        idCounter += 2
+        # Stage 3: Go downwards initially as well as up
+        while len(objQueue) > 0:
+            shrek = objQueue.pop(0)
+            # Try adding in my sites to the siteTable
+            sp = shrek.shape.points[0]
+            ep = shrek.shape.points[1]
+            if not getPosHash(sp) in siteDict.keys():
+                # Site not existing already, add it in
+                idCounter += 1
+                siteDict[getPosHash(sp)] = Site(idCounter,sp[0],sp[1],0,0)
+                # Now we need to add all my neighbors to the queue
+                others = getTheOthers(tridict[1],sp,shrek)
+                for each in others:
+                    objQueue.append(each)
+            if not getPosHash(ep) in siteDict.keys():
+                idCounter += 1
+                siteDict[getPosHash(ep)] = Site(idCounter,ep[0],ep[1],0,0)
+                # Now we need to add all my neighbors to the queue
+                others = getTheOthers(tridict[0],ep,shrek)
+                for each in others:
+                    objQueue.append(each)
+            if not shrek.record.ReachCode in flowDict.keys():
+                flowRep = Flow(shrek.record.GNIS_ID_12,siteDict[getPosHash(sp)],
+                siteDict[getPosHash(ep)],shrek.record.LengthKM,
+                shrek.record.ReachCode,shrek.record.GNIS_Name)
 
-        baseFlow = Flow(shprc.record.GNIS_ID_12,upSite,downSite,shprc.record.LengthKM,reachCode,shprc.record.GNIS_Name)
-        flowDict[reachCode] = baseFlow
-        # Stage 3.2: Now traverse upwards and downwards
-        flag = True
-              
-        queuee = [shprc]
-        while len(queuee) > 0:
-            focus = queuee.pop(0)
-            others = getTheOthers(tridict[1],sp,focus)
-            # TODO: Finish the iterative getTheOthers calls for everything upstream and
-            # not alread added into the list
-            if len(others) < 1:
-                
-                continue
-            # Upstream
-            for eachUp in others:
-                spOther = eachUp.shape.points[0]
-                epOther = eachUp.shape.points[1] # ep should be equal to the sp at the top
-                try:
-                    uSite = siteDict[getPosHash(spOther)]
-                except KeyError as ke:   
-                    idCounter += 1                 
-                    uSite = Site(idCounter,spOther[0],spOther[1],0,0)
-                try:
-                    dSite = siteDict[getPosHash(epOther)]
-                except KeyError as ke:
-                    dSite = Site(idCounter + 2,epOther[0],epOther[1],0,0)
-                try:
-                    fl = flowDict[eachUp.record.ReachCode]
-                    # Since it exists, dont add new flow
-                except KeyError as ke:
-                    newFlow = Flow(eachUp.record.GNIS_ID_12,uSite,dSite,eachUp.record.LengthKM,
-                    eachUp.record.ReachCode,eachUp.record.GNIS_Name)
-                    # Flow does not exist, it needs to be added
-                    flowDict[eachUp.record.ReachCode] = newFlow
-                queuee.append(eachUp)
+            
+            
+        # Stage 4: Go upwards ONLY
 
 
-        # ------ reset for downstream traversal
-        flag = True
-        queuee = [shprc]
-        while len(queuee) > 0:
-            # Downstream
-            focus = queuee.pop(0)
-            others = getTheOthers(tridict[0],ep,focus)
-            # TODO: Finish the iterative getTheOthers calls for everything upstream and
-            # not alread added into the list
-            if len(others) < 1:
-                continue
-            # Upstream
-            for eachDown in others:
-                spOther = eachDown.shape.points[0]
-                epOther = eachDown.shape.points[1] # ep should be equal to the sp at the top
-                try:
-                    uSite = siteDict[getPosHash(epOther)]
-                except KeyError as ke:   
-                    idCounter += 1                 
-                    uSite = Site(idCounter,spOther[0],spOther[1],0,0)
-                try:
-                    dSite = siteDict[getPosHash(epOther)]
-                except KeyError as ke:
-                    dSite = Site(idCounter + 2,epOther[0],epOther[1],0,0)
-                try:
-                    fl = flowDict[eachUp.record.ReachCode]
-                    # Since it exists, dont add new flow
-                except KeyError as ke:
-                    newFlow = Flow(eachUp.record.GNIS_ID_12,uSite,dSite,eachUp.record.LengthKM,
-                    eachUp.record.ReachCode,eachUp.record.GNIS_Name)
-                    # Flow does not exist, it needs to be added
-                    flowDict[eachUp.record.ReachCode] = newFlow
-                queuee.append(eachDown)
 
         # FINAL Stage: Return a network given value set in dictionary      
-        netty = Network(flowDict.values(),siteDict.values())
+        netty = Network(list(flowDict.values()),list(siteDict.values()))
         return netty
         
             
@@ -233,9 +187,3 @@ def extrapolateFocus(net,path):
     pass
 
     
-
-PATH = "./Data/SELakeOntario/SELakeONtario.shp"
-
-if __name__ == "__main__":
-    tridict = importShapefile_TriDict(PATH)
-    net = findConnected(tridict,"04140101000103")
