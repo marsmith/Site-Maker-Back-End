@@ -152,6 +152,9 @@ def findConnected(tridict,reachCode,export=True):
             # For the startpoint, see if it is also the endpoint of others
             s_oth = getTheOthers(tridict[1],sp,shrek)
             # For the endpoint, see if it is also the startpoint of others or endpoint of others
+            e_oth = getTheOthers(tridict[0],ep,shrek)
+            e_othEndpoint = getTheOthers(tridict[1],ep,shrek)
+            print("AAAAAAAAAAA")
             # HELP! THIS IS NOT WORKING >_<; it should get other lines connecting to this point, but
             # it says there are none!
 
@@ -193,8 +196,9 @@ def extrapolateFocus(net,path):
     
 
 if __name__ == "__main__":
-    PATH = "./Data/SELakeOntario/SELakeONtario.shp"
+    PATH = "./Data/TestShape/Test.shp"
     tridict = importShapefile_TriDict(PATH)
-    net = findConnected(tridict,"04140101001065")
+    # New (test): 02030103011615; old sELakeOntario 04140101001065
+    net = findConnected(tridict,"02030103011615")
     extrapolateFocus(net,"p")
     print(net)
