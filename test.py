@@ -87,7 +87,7 @@ class TestPrecompiler(unittest.TestCase):
         self.verifyAllNumbered(netTup[0])
         self.SiteLoader("Data/snapped-site-test-subset.json")
         self.create_files(netTup[0])
-        #create_visuals("SmallNet001")
+        create_visuals("SmallNet001")
         
 
 

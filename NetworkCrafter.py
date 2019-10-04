@@ -2,7 +2,7 @@
 Module for creating networks based on the
 areas between real sites in the NHD & Sitefile combo.
 '''
-import Precompiler
+from Precompiler import *
 from MultiNetwork import *
 
 def importJSON(filepath):
@@ -90,7 +90,7 @@ def isolateNet(jsonDict,checkName=False):
                 linesList.append(fl2Add)
 
         elif geomObj['geometry']['type'] == "LineString":
-            upSite = Precompiler.Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
+            upSite = Site(siteCounter,upPoint[0],upPoint[1],upPoint[3])
             if str(upSite.latLong) in sitesDict:
                 upGood = sitesDict[str(upSite.latLong)]
             else:
@@ -102,7 +102,7 @@ def isolateNet(jsonDict,checkName=False):
                 sitesList.append(upSite)
 
             
-            downSite = Precompiler.Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
+            downSite = Site(siteCounter,downPoint[0],downPoint[1],downPoint[3])
             if str(downSite.latLong) in sitesDict:
                 downGood = sitesDict[str(downSite.latLong)]
             else:
@@ -114,14 +114,16 @@ def isolateNet(jsonDict,checkName=False):
                 sitesList.append(downSite)
 
             
-            fl2Add = Precompiler.Flow(theID,upGood,downGood,length,rc,name)    
+            fl2Add = Flow(theID,upGood,downGood,length,rc,name)    
             upGood.addFlow(fl2Add)
             downGood.addFlow(fl2Add)            
             linesList.append(fl2Add)
         else:
             print("ERROR: Unknown object type encountered")
-            raise RuntimeError()       
-    return Precompiler.Network(linesList,sitesList)
+            raise RuntimeError()  
+         
+    net = Network(linesList,sitesList)
+    return net
 
 
 def generateNetworks(fp):    

@@ -2,12 +2,10 @@
 import json
 import numpy
 import sys
-import Dijkstra
+
 import copy
-import test
-import Visualizer
-import DataIO
-import NetworkCrafter
+
+
 
 degree_sign= u'\N{DEGREE SIGN}'
 
@@ -624,7 +622,7 @@ class Network(object):
                     # This site is downstream and is the only downstream site left
                     kaboodle.append(kit)
         
-        return kaboodle 
+        return kaboodle
 
     def calculateUpstreamDistances(self):
         '''
@@ -908,7 +906,7 @@ def calcStraihler(net):
             if flow.downstreamSite not in queue:
                 queue.append(flow.downstreamSite)
     
-    sink = calculateSink(net)[0]
+    sink = net.calculateSink()[0]
 
     while(queue):
         curr = queue.pop(0)
@@ -1000,7 +998,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
 
     # Use bitwise or to format final values
     if sinkSite is None:
-        sinkSite = calculateSink(net)
+        sinkSite = net.calculateSink()[0]
     queue = []  
     starterTuple = (sinkSite,None,None)  
     queue.append(starterTuple)
@@ -1076,5 +1074,5 @@ def getLowestUpstreamNumber(net,site):
 
     Returns [SiteID]: Furthest upstream's SiteID
     '''
-    return navigateFurthestUpstream(net,site).assignedID
+    return net.navigateFurthestUpstream(site).assignedID
 

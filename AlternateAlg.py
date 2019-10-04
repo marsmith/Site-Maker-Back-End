@@ -144,7 +144,7 @@ def findConnected(tridict,reachCode,export=True):
                 # Now we need to add all my neighbors to the queue
                 
             if not shrek.record.ReachCode in flowDict.keys():
-                flowRep = Flow(shrek.record.GNIS_ID_12,siteDict[getPosHash(sp)],
+                flowRep = Flow(shrek.record.GNIS_ID,siteDict[getPosHash(sp)],
                 siteDict[getPosHash(ep)],shrek.record.LengthKM,
                 shrek.record.ReachCode,shrek.record.GNIS_Name)
                 flowDict[shrek.record.ReachCode] = flowRep
