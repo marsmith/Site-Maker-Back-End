@@ -1,5 +1,6 @@
 import shapefile
 from Precompiler import *
+import arcpy
 
 def getPosHash(point,index= None):
     if index is None:
@@ -30,7 +31,7 @@ def importShapefile_TriDict(path):
 
         Returns [None]
         '''
-        for i in range(limit):        
+        for i in range(0,limit):        
             hstr = getPosHash(point,i)
             if not hstr in dict.keys():
                 # Safe to insert, it doesnt exist
@@ -87,7 +88,7 @@ def importShapefile_TriDict(path):
 
 
 
-def findConnected(tridict,reachCode):
+def findConnected(tridict,reachCode,export=True):
     '''
     Find all the lines connected to the line with the specific reachCode. In essence,
     isolating a Network which can be reached via reachCode.
@@ -118,11 +119,13 @@ def findConnected(tridict,reachCode):
         shprc = tridict[2][reachCode]
         idCounter = 0
         siteDict = {}
-        flowDict = {}
-        
-        
+        flowDict = {}      
         objQueue = [shprc]
-
+        def determineExists(dict,point,limit=4):
+            for i in range(limit):
+                if getPosHash(point,i) in dict.keys():
+                    return i
+            return None
         # Stage 3: Go downwards initially as well as up
         while len(objQueue) > 0:
             shrek = objQueue.pop(0)
@@ -134,29 +137,31 @@ def findConnected(tridict,reachCode):
                 idCounter += 1
                 siteDict[getPosHash(sp)] = Site(idCounter,sp[0],sp[1],0,0)
                 # Now we need to add all my neighbors to the queue
-                others = getTheOthers(tridict[1],sp,shrek)
-                for each in others:
-                    objQueue.append(each)
+                
             if not getPosHash(ep) in siteDict.keys():
                 idCounter += 1
                 siteDict[getPosHash(ep)] = Site(idCounter,ep[0],ep[1],0,0)
                 # Now we need to add all my neighbors to the queue
-                others = getTheOthers(tridict[0],ep,shrek)
-                for each in others:
-                    objQueue.append(each)
+                
             if not shrek.record.ReachCode in flowDict.keys():
                 flowRep = Flow(shrek.record.GNIS_ID_12,siteDict[getPosHash(sp)],
                 siteDict[getPosHash(ep)],shrek.record.LengthKM,
                 shrek.record.ReachCode,shrek.record.GNIS_Name)
-
+                flowDict[shrek.record.ReachCode] = flowRep
             
-            
-        # Stage 4: Go upwards ONLY
+            # For the startpoint, see if it is also the endpoint of others
+            s_oth = getTheOthers(tridict[1],sp,shrek)
+            # For the endpoint, see if it is also the startpoint of others or endpoint of others
+            # HELP! THIS IS NOT WORKING >_<; it should get other lines connecting to this point, but
+            # it says there are none!
 
 
-
+          
         # FINAL Stage: Return a network given value set in dictionary      
         netty = Network(list(flowDict.values()),list(siteDict.values()))
+        if export:
+            # We need to export this network as a shapefile
+            pass
         return netty
         
             
@@ -181,9 +186,15 @@ def extrapolateFocus(net,path):
             0x0004 SCENARIO C:
     ''' 
     # Step 1: Gather geometric data
+    
     # Step 2: Pass over to QGIS script (python 3.x) or a arcpy script (python 2.x)
     #           Basically perform either an intersect with features [lines,poinits]
     # Step 3: Return Network as limited by these points
-    pass
-
     
+
+if __name__ == "__main__":
+    PATH = "./Data/SELakeOntario/SELakeONtario.shp"
+    tridict = importShapefile_TriDict(PATH)
+    net = findConnected(tridict,"04140101001065")
+    extrapolateFocus(net,"p")
+    print(net)

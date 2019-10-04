@@ -11,6 +11,6 @@
     "python.testing.unittestEnabled": true,
     "python.linting.pylintEnabled": false,
     "python.linting.mypyEnabled": true,
-    "python.linting.enabled": true,
-    "python.pythonPath": "C:\\Users\\mpanozzo\\AppData\\Local\\Programs\\Python\\Python36\\python.exe"
+    "python.linting.enabled": false,
+    "python.pythonPath": "C:\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe"
 }
