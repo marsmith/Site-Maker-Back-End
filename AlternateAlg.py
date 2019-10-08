@@ -8,6 +8,11 @@ def getPosHash(point,index= None):
         return "{0},{1}".format(point[0],point[1])
     else:
         return "{0},{1}:{2}".format(point[0],point[1],index)
+def getRCHash(rc,index=None):
+    if index is None:
+        return "{0}:{1}".format(rc)
+    else:
+        return "{0}:{1}".format(rc,index)
 
 def importShapefile_TriDict(path):
     '''
@@ -38,7 +43,13 @@ def importShapefile_TriDict(path):
                 dict[hstr] = shape
                 return
         raise RuntimeError("Error: Points already exist!")
-
+    def placeInRCDict(rcDict,shapeRecord,limit=1654):
+        for i in range(0,limit):
+            hstr = getRCHash(shapeRecord.record.ReachCode,i)
+            if not hstr in rcDict.keys():
+                rcDict[hstr] = shapeRecord
+                return
+        raise RuntimeError("Error: SR Alloc already exist!")
     def retrieveShared(dict,point,limit=4):
         '''
         Will retrieve a list of all identical points (in terms of geographic coordinate).
@@ -79,7 +90,7 @@ def importShapefile_TriDict(path):
             
             placeInDict(startPointDict,sp,sr)
             placeInDict(endPointDict,ep,sr)
-            reachCodeDict[record.ReachCode] = sr
+            placeInRCDict(reachCodeDict,sr)
         else:
             print("Unrecognized type!")
             break   
@@ -114,18 +125,35 @@ def findConnected(tridict,reachCode,export=True):
             except KeyError as identifier:
                 break
         return l
+    def getTheRCOthers(dict,sr,reachCode,lim=1673):
+        l = []
+        for i in range(lim):
+            hashy = getRCHash(reachCode,i)
+            try:
+                obj = dict[hashy]
+                if obj == sr:
+                    continue
+                # We found an 'other' that connects here, add it to list
+                l.append(obj)
+            except KeyError as identifier:
+                break
+        return l
+
     # Stage 2: Select proper shape based on reachCode
     try:
-        shprc = tridict[2][reachCode]
+        shprc = getTheRCOthers(tridict[2],None,reachCode,1)[0]
         idCounter = 0
         siteDict = {}
         flowDict = {}      
-        objQueue = [shprc]
+        objQueue = []
+        objQueue.append(shprc)
+
         def determineExists(dict,point,limit=4):
             for i in range(limit):
                 if getPosHash(point,i) in dict.keys():
                     return i
             return None
+            
         # Stage 3: Go downwards initially as well as up
         while len(objQueue) > 0:
             shrek = objQueue.pop(0)
@@ -148,16 +176,20 @@ def findConnected(tridict,reachCode,export=True):
                 siteDict[getPosHash(ep)],shrek.record.LengthKM,
                 shrek.record.ReachCode,shrek.record.GNIS_Name)
                 flowDict[shrek.record.ReachCode] = flowRep
-            
+            else:
+                continue # Do NOT repeat what we have already seen
+
             # For the startpoint, see if it is also the endpoint of others
             s_oth = getTheOthers(tridict[1],sp,shrek)
             # For the endpoint, see if it is also the startpoint of others or endpoint of others
             e_oth = getTheOthers(tridict[0],ep,shrek)
-            e_othEndpoint = getTheOthers(tridict[1],ep,shrek)
             print("AAAAAAAAAAA")
             # HELP! THIS IS NOT WORKING >_<; it should get other lines connecting to this point, but
             # it says there are none!
-
+            for each in s_oth:
+                objQueue.append(each)
+            for every in e_oth:
+                objQueue.append(every)
 
           
         # FINAL Stage: Return a network given value set in dictionary      
