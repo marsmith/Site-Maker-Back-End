@@ -1,3 +1,11 @@
+'''
+Things To DO:
+Fix the code so that random filenames are not there i.e. filenames
+are parameters that can be passed in
+'''
+
+
+
 # -*- coding: utf-8 -*-
 # ---------------------------------------------------------------------------
 # AddonisWorkflow_01.py
@@ -33,7 +41,7 @@ region_buff = "C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_N
 buff_site = "C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site"
 Site_P = buff_site
 WORK_gdb = "C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb"
-Output_Feature_Dataset = "C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\"
+Output_Feature_Dataset = WORK_gdb + "\\prog001"
 buff_line = "C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_line"
 buff_line_SplitLineAtPoint = "C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint"
 Line_P = buff_line_SplitLineAtPoint
@@ -45,7 +53,7 @@ arcpy.Buffer_analysis(USER_CLICK, region_buff, Distance__value_or_field_, "FULL"
 arcpy.Intersect_analysis("C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\Selected_Sites #;C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\USER_CLICK_Buffer2 #", buff_site, "ALL", "", "INPUT")
 
 # Process: Create Feature Dataset
-arcpy.CreateFeatureDataset_management(WORK_gdb, "", "")
+arcpy.CreateFeatureDataset_management(WORK_gdb, "prog001", "") # Now Output_Feature_Dataset can be used
 
 # Process: Feature Class to Feature Class
 arcpy.FeatureClassToFeatureClass_conversion(buff_site, Output_Feature_Dataset, "Site_P", "", "FID_Selected_Sites \"FID_Selected_Sites\" true true false 0 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,FID_Selected_Sites,-1,-1;site_no \"site_no\" true true false 15 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,site_no,-1,-1;station_nm \"station_nm\" true true false 50 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,station_nm,-1,-1;lat_va \"lat_va\" true true false 11 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,lat_va,-1,-1;long_va \"long_va\" true true false 12 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,long_va,-1,-1;dec_lat_va \"dec_lat_va\" true true false 8 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,dec_lat_va,-1,-1;dec_long_v \"dec_long_v\" true true false 8 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,dec_long_v,-1,-1;coord_meth \"coord_meth\" true true false 1 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,coord_meth,-1,-1;coord_datu \"coord_datu\" true true false 10 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,coord_datu,-1,-1;district_c \"district_c\" true true false 3 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,district_c,-1,-1;map_nm \"map_nm\" true true false 20 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,map_nm,-1,-1;state_cd \"state_cd\" true true false 2 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,state_cd,-1,-1;county_cd \"county_cd\" true true false 3 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,county_cd,-1,-1;huc_cd \"huc_cd\" true true false 16 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,huc_cd,-1,-1;agency_use \"agency_use\" true true false 1 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,agency_use,-1,-1;drain_area \"drain_area\" true true false 8 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,drain_area,-1,-1;contrib_dr \"contrib_dr\" true true false 8 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,contrib_dr,-1,-1;project_no \"project_no\" true true false 12 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,project_no,-1,-1;site_web_c \"site_web_c\" true true false 1 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,site_web_c,-1,-1;site_cr \"site_cr\" true true false 25 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,site_cr,-1,-1;FID_USER_CLICK_Buffer2 \"FID_USER_CLICK_Buffer2\" true true false 0 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,FID_USER_CLICK_Buffer2,-1,-1;BUFF_DIST \"BUFF_DIST\" true true false 0 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,BUFF_DIST,-1,-1;ORIG_FID \"ORIG_FID\" true true false 0 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\buff_site,ORIG_FID,-1,-1", "")
@@ -58,4 +66,24 @@ arcpy.SplitLineAtPoint_management(buff_line, buff_site, buff_line_SplitLineAtPoi
 
 # Process: Feature Class to Feature Class (2)
 arcpy.FeatureClassToFeatureClass_conversion(buff_line_SplitLineAtPoint, Output_Feature_Dataset, "Line_P", "", "FID_Selected_Line \"FID_Selected_Line\" true true false 0 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,FID_Selected_Line,-1,-1;Permanent_Identifier \"Permanent_Identifier\" true true false 40 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,Permanent_Identifier,-1,-1;FDate \"FDate\" true true false 8 Date 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,FDate,-1,-1;Resolution \"Resolution\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,Resolution,-1,-1;GNIS_ID \"GNIS_ID\" true true false 10 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,GNIS_ID,-1,-1;GNIS_Name \"GNIS_Name\" true true false 65 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,GNIS_Name,-1,-1;LengthKM \"LengthKm\" true true false 8 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,LengthKM,-1,-1;ReachCode \"ReachCode\" true true false 14 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,ReachCode,-1,-1;FlowDir \"FlowDir\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,FlowDir,-1,-1;WBArea_Permanent_Identifier \"WBArea_Permanent_Identifier\" true true false 40 Text 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,WBArea_Permanent_Identifier,-1,-1;FType \"FType\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,FType,-1,-1;FCode \"FCode\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,FCode,-1,-1;MainPath \"MainPath\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,MainPath,-1,-1;InNetwork \"InNetwork\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,InNetwork,-1,-1;VisibilityFilter \"VisibilityFilter\" true true false 4 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,VisibilityFilter,-1,-1;Shape_Length \"Shape_Length\" true true true 8 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,Shape_Length,-1,-1;FID_USER_CLICK_Buffer2 \"FID_USER_CLICK_Buffer2\" true true false 0 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,FID_USER_CLICK_Buffer2,-1,-1;BUFF_DIST \"BUFF_DIST\" true true false 0 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,BUFF_DIST,-1,-1;ORIG_FID \"ORIG_FID\" true true false 0 Long 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,ORIG_FID,-1,-1;Shape_length_1 \"Shape_length_1\" true true false 0 Double 0 0 ,First,#,C:\\Users\\mpanozzo\\Downloads\\NHD_H_New_York_State_GDB\\NHD_H_New_York_State_GDB.gdb\\buff_line_SplitLineAtPoint,Shape_length_1,-1,-1", "")
+
+# -- PART 2: Create the geometric network
+
+
+# Local variables:
+GeomNetwork = "C:\\Users\\mpanozzo\\Downloads\\WORK_STAND\\WORK.gdb\\Prog_001\\GeomNetwork"
+GeomNetwork__2_ = GeomNetwork
+Flow_Option = "WITH_DIGITIZED_DIRECTION"
+USER_CLICK = ""
+GeomTrace = "GeomTrace"
+Accumulation_Cost = "-1"
+
+# Process: Create Geometric Network
+arcpy.CreateGeometricNetwork_management(Output_Feature_Dataset, "GeomNetwork", "", "", "", "", "", "PRESERVE_ENABLED")
+
+# Process: Set Flow Direction
+arcpy.SetFlowDirection_management(GeomNetwork, Flow_Option)
+
+# Process: Trace Geometric Network
+arcpy.TraceGeometricNetwork_management(GeomNetwork__2_, GeomTrace, USER_CLICK, "FIND_CONNECTED", Barriers, "", "", "", "", "NO_TRACE_ENDS", "NO_TRACE_INDETERMINATE_FLOW", "", "", "AS_IS", "", "", "", "AS_IS")
 
