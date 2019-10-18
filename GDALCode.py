@@ -7,6 +7,8 @@ import os
 import folium
 
 
+
+
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
     # Load Lines
     path = folderPath + "\\" + lineLayerName + "\\" + lineLayerName + ".shp"
