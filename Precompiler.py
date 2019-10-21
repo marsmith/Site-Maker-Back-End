@@ -113,8 +113,8 @@ class SiteID(object):
         value [number]: 'value' portion (0 to 99999999)
         extension [number]: Extension portion (0 to 99) (default=None)
         '''
-        frm = str("%04d"%watershed)
-        frm2 = str("%04d"%value)
+        frm = str("%012d"%watershed)
+        frm2 = str("%08d"%value)
         if extension is None:
             # 8 digit general ID
             self.fullID = int(frm + frm2)
@@ -129,7 +129,19 @@ class SiteID(object):
         self.value = value
         self.extension = extension
 
-    
+    def __init__(self,stringg):
+        self.value = stringg
+        self.id = int(stringg)
+        self.watershed = str("%012d"%0)
+        self.fullID = int(self.watershed + self.id)
+        if len(stringg) > 8:
+            self.extension = stringg[8:]
+            assert(len(self.extension) == 2)
+        else:
+            self.extension = None
+
+
+
     
     def __str__(self):
         '''
@@ -232,7 +244,7 @@ class Site(object):
     ---------------------------------------------------------------------------
 
     '''
-    def __init__(self,id,lat,long,h,z=0,flC = None,isl = False):
+    def __init__(self,id,lat,long,h=0,z=0,flC = None,isl = False):
         '''
         Constructs a new Site object
 
