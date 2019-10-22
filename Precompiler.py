@@ -812,7 +812,8 @@ class Network(object):
                     s = d[0][0]
                 else:
                     if len(u) == 1 and len(d) == 0:
-                        # This is a sink, its fine                        
+                        # This is a sink, its fine  
+                        pass                      
                     else:
                         # This is not fine
                         raise RuntimeError("Error: Are there loops?")
