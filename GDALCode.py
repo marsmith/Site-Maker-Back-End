@@ -8,6 +8,7 @@ import json
 import folium
 from Precompiler import *
 
+UC_BUFFER_SIZE = 5000 #km
 
 def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
     '''
@@ -68,13 +69,13 @@ class Node(object):
     
 
     
-def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
+def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_SIZE):
     # Load Lines
     path = folderPath + "\\" + lineLayerName + "\\" + lineLayerName + ".shp"
     
     path_sites = folderPath + "\\" + siteLayerName + "\\" + siteLayerName + ".shp"
     # Buffer around userClick
-    print("Now buffer around userClick")
+    
     oRef = osr.SpatialReference()
     oRef.ImportFromEPSG(4326)
 
@@ -89,9 +90,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
     inputPointProj.SetPoint_2D(0,p_lng,p_lat)
 
 
-    print("I got to here")
-
-    geomBuffer = inputPointProj.Buffer(10000) # Buffer 10 km around the geometry
+    geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry
  
     # Load Selected Sites
     sitesDataSource = ogr.Open(path_sites)
@@ -136,13 +135,14 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
     # Intersect of BUFFER and LINES
     for line in linesLayer:        
         interLines.append(line)
-    print(len(interLines))    
+   
+
       
     # Buffer all Lines
     lBufferStore = {} # Stores line entry, Bool flag)
     
     sitesStore = {}# Stores Site object (fake site)
-    flowlineList = [] # Stores Flowline object (flow)
+    flowList = [] # Stores Flowline object (flow)
     
     
     # Create Buffer polygon where user clicked    
@@ -162,19 +162,25 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
         print("ERROR: USER_CLICK does not intersect any existing lines")
         return
     
+    queue = [] # Stores keys
     queue.append(startingLine)
     
-    queue = [] # Stores keys
+   
     while len(queue) > 0:
         e = queue.pop(0) # This will be the line
         if lBufferStore[e] == True:
             # We have already visited this
             continue
         else:
-            _npt = e.GetPointCount()
-            upPt = e.GetPoint(0)
+            _npt = e.GetGeometryRef().GetPointCount()
+            upPt = ogr.Geometry(ogr.wkbPoint)
+            p_ = e.GetGeometryRef().GetPoint(0)
+            upPt.AddPoint(p_[0],p_[1])
+            
             upBuff = upPt.Buffer(1)
-            downPt = e.GetPoint(_npt - 1)
+            downPt = ogr.Geometry(ogr.wkbPoint)
+            p_ = e.GetGeometryRef().GetPoint(_npt - 1)
+            downPt.AddPoint(p_[0],p_[1])
             downBuff = downPt.Buffer(1)
             # See if any of the sites are also that endpoint
             b_f = [False,False]
@@ -183,7 +189,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
             
             # Check if any real sites exist at the endpoint
             for s in interSites:
-                s_geom = s.GetGeometryRef().Buffer(1)
+                s_geom = s[1]
                 if s_geom.Intersects(upPt):
                     # Found existing upper extent
                     b_f[0] = True
@@ -197,7 +203,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
                         sid = SiteID(s.GetFieldAsString(siteNumber_index))
-                        s = Site(sid,s_geom.GetX(),s_geom.GetY())
+                        s = Site(sid,s_geom.GetX(),s_geom.GetY(),0)
                         sitesStore[s_geom] = s
                         upSite = s
                         
@@ -214,7 +220,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
                         sid = SiteID(s.GetFieldAsString(siteNumber_index))
-                        s = Site(sid,s_geom.GetX(),s_geom.GetY())
+                        s = Site(sid,s_geom.GetX(),s_geom.GetY(),0)
                         sitesStore[s_geom] = s
                         downSite = s
                  
@@ -245,7 +251,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
                         foundExisting = True
                         upSite = sitesStore[k]
                 if not foundExisting:
-                    s = Site(siteCounter,upPt.GetX(),upPt.GetY())
+                    s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0)
                     sitesStore[upPt.Buffer(1)] = s
                     upSite = s
                     siteCounter += 1
@@ -258,7 +264,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
                         foundExisting = True
                         downSite = sitesStore[k]
                 if not foundExisting:
-                    s = Site(siteCounter,downPt.GetX(),downPt.GetY())
+                    s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0)
                     downSite = s
                     sitesStore[downPt.Buffer(1)] = s
                     siteCounter += 1
@@ -269,21 +275,17 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
             fCode = e.GetFieldAsString(lineFCode_index)
             fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!
             
-            f = Flowline(fid,upSite,downSite,flen,fRC)
+            f = Flow(fid,upSite,downSite,flen,fRC)
             # Line has been constructed, add to the table
             upSite.flowsCon.append(f)
             downSite.flowsCon.append(f)
+            flowList.append(f)
+            
+    # From the stored sites and flows, derive the network structure
+    netti = Network(flowList,sitesStore.values())
     
             
-    return
-        
-    # Store which ones intersect which other ones
     
-    # Create Node objects at the difference of the intersections
-    # Flag nodes which share Intersection with existing sites
-    
-    # Derive Network Relationship
-
     # Display all in folium GeoJSON
     m = folium.Map(location=[y,x],zoom_start=13)
     folium.Marker([y,x],popup='<b>USER_CLICK</b>').add_to(m)
@@ -302,4 +304,40 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y):
         folium.GeoJson(data=geoJ).add_to(m)    
     
     display(m)
+    
+    
+    # Do unit length calculations
+    sinks = netti.calculateSink()
+    netti.setupSiteSafety()
+    
+    assert(len(sinks) == 1)
+    netti.recalculateTotalLength()
+    netti.calculateUpstreamDistances()
+    calcStraihler(netti)
+
+    # Now, recalculate unit length based on the length of the network and existing sites
+    realSites = netti.getRealSites()
+    
+
+    if len(realSites) == 0:
+        # Case 0: There are no real sites on this network
+    elif len(realSites == 1):
+        # Case 1: There is only one real site
+        realID = realSites[0]
+    else:
+        # There are at least two real sites
+        realSites.sort(key= lambda s: s.id) # Sort the real sites
+        minID = realSites[0].id
+        maxID = realSites[len(realSites) - 1].id
+
+    
+
+    # Visualize the network
+    t = test.TestPrecompiler()
+    t.create_files(netti)
+    Visualizer.create_visuals("hello")
+    
+    return netti
+    
+    
     

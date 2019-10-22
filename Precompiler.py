@@ -616,6 +616,22 @@ class Network(object):
                 self.flowTable.remove(f)
             else:
                 i += 1
+    def getRealSites(self):
+        '''
+        Determines a list of all the real sites in this network
+
+        net [Network]: Network to perform analysis on
+
+        Returns List[Of Site] sites in the sitetable (byref) which
+        are real-world data collection sites (these probably also have already been assigned a real ID)
+
+        '''
+        r = []
+        for s in self.siteTable:
+            if s.isReal:
+                r.append(s)
+        return r
+
     def calculateSink(self):
         '''
         Calculate the sink for a given network. The sink is the most downstream
