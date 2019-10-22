@@ -794,7 +794,39 @@ class Network(object):
                 # Keep progressing
                 rtrnFlow = dsCons[0][2]
                 s = dsCons[0][0]
+    def findSharedConfluence(self,site1,site2):
+        '''
+        Will navigate through the network to find the confluence
+        of two sites (nodes). Note: This will not work if there are loops potentially
+        '''
+        s1History = []
+        s2History = [] # Where these overlap is where the shared confluence is
+        
+        def popHistory(s,history):
+            while s != None:
+                history.append(s)
+                d = s.getDownstream()
+                u = s.getUpstream()
+                if len(d) == 1:
+                    # Use this downstream
+                    s = d[0][0]
+                else:
+                    if len(u) == 1 and len(d) == 0:
+                        # This is a sink, its fine                        
+                    else:
+                        # This is not fine
+                        raise RuntimeError("Error: Are there loops?")
 
+        popHistory(site1,s1History)
+        popHistory(site2,s2History)
+
+        # Compare lists to find where they overlap
+        s1Set = frozenset(s1History)
+        s2Set = frozenset(s2History)
+
+        iSct = s1Set.intersection(s2Set)
+        return iSct[0]
+                    
 
     def navigateFurthestUpstream(self,site):
         '''
@@ -882,6 +914,8 @@ def peq(siteList,site):
         if e.hasPositionalEquality(site):
             return e
     return site
+    
+
 
 
 def removeUseless(net):
