@@ -375,7 +375,7 @@ class Site(object):
         while i in range(len(self.flowsCon)):
             f = self.flowsCon[i]
             if f.upstreamSite == site or f.downstreamSite == site:
-                self.flowsCon.remove(f)
+                self.flowsCon.pop(i)
             else:
                 i += 1 
     
