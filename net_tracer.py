@@ -1,17 +1,13 @@
 from Precompiler import *
 
 
-
-
-
-
-def algorithm(network):
+def net_tracer(network):
     real_sites_counter = 0
     for site in network.siteTable:
         if site.isReal:
                 real_sites_counter += 1
                 real_site = site
-    
+    print(real_sites_counter)
     if real_sites_counter == 1:
         queue = [real_site]
         while (queue):

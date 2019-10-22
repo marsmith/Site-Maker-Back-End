@@ -84,8 +84,11 @@ def create_visuals(test_name):
 
     sL = list(sites.values())
 
-    Xn = [sL[k][1] for k in range(len(sL))]
-    Yn = [sL[k][2] for k in range(len(sL))]
+    Xn = []
+    Yn = []
+    for k in range(len(sL)):
+        Xn.append(sL[k][1])
+        Yn.append(sL[k][2])
 
     labels = [sL[k][0] for k in range(len(sL))]
     node_labels = ["ID: " + str(sL[k][0]) + "\nAssigned ID: " + str(sL[k][3]) + "\nDownward Ref ID:" + sL[k][4] for k in range(len(sL))]
@@ -103,11 +106,17 @@ def create_visuals(test_name):
     Xe = []
     Ye = []
     
+    Xdict = dict()
+    Ydict = dict()
+    for k in range(len(sL)):
+        Xdict[sL[k][0]] = sL[k][1]
+        Ydict[sL[k][0]] = sL[k][2]
+    
     for e in G.edges():
-        x0 = Xn[e[0]]
-        y0 = Yn[e[0]]
-        x1 = Xn[e[1]]
-        y1 = Yn[e[1]]
+        x0 = Xdict[e[0]]
+        y0 = Ydict[e[0]]
+        x1 = Xdict[e[1]]
+        y1 = Ydict[e[1]]
         Xe.append(x0)
         Xe.append(x1)
         Xe.append(None)
