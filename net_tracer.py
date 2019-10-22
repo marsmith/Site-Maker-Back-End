@@ -1,5 +1,10 @@
 from Precompiler import *
 
+
+
+
+
+
 def algorithm(network):
     real_sites_counter = 0
     for site in network.siteTable:

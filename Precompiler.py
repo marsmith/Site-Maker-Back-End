@@ -936,10 +936,11 @@ def removeUseless(net,addLengths=False):
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
         cs = sit.connectedSites()
-        if len(cs) == 2:
+        coni0 = cs[0]
+        coni1 = cs[1]
+        if len(cs) == 2 and coni0.reachCode == coni1.reachCode:
             # This site is deletable
-            coni0 = cs[0]
-            coni1 = cs[1]
+            
             if addLengths:
                 newLen = coni0[2].length + coni1[2].length
             else:
