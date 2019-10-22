@@ -919,7 +919,7 @@ def peq(siteList,site):
 
 
 
-def removeUseless(net):
+def removeUseless(net,addLengths=False):
     ''' 
     Will remove sites from the network with only two neighbors (1 up 1 down)
     Will then merge the two flows together into one flow, keeping the length
@@ -940,8 +940,11 @@ def removeUseless(net):
             # This site is deletable
             coni0 = cs[0]
             coni1 = cs[1]
-            assert(coni0[2].length == coni1[2].length)
-            newLen = coni0[2].length
+            if addLengths:
+                newLen = coni0[2].length + coni1[2].length
+            else:
+                assert(coni0[2].length == coni1[2].length)
+                newLen = coni0[2].length
             fl2Add = None
             if coni0[1] == DOWNSTREAM_CON:
                 # coni0 is downstream of deletable site ('sit')
