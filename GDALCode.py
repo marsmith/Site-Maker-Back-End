@@ -306,7 +306,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     
     
 if __name__ == "__main__":
-    net = isolateNetwork("/Users/nicknack/Downloads/GDAL_DATA_PR","SitesSnapped_Project","NHDFlowline_Project",-73.9071283,42.3565272,5000)
+    net = isolateNetwork("/Users/nicknack/Downloads/GDAL_DATA_PR","SitesSnapped_Project","NHDFlowline_Project",-73.9071283,42.3565272,1000)
     net_tracer(net)
     print("AYOOOWAYOOO")
     
