@@ -610,11 +610,12 @@ class Network(object):
         Returns [None]
         '''
         i = 0        
+        s = set()
         while i in range(len(self.flowTable)):
             f = self.flowTable[i]
             if f.upstreamSite == site or f.downstreamSite == site:
-                self.flowTable.remove(f)
-            else:
+                self.flowTable.pop(i)
+            else:               
                 i += 1
     def getRealSites(self):
         '''
@@ -680,8 +681,7 @@ class Network(object):
                     if con[0].pendingUpstream == 0:
                         cntr -= 1
             u.pendingUpstream = cntr
-            if u.id == 32:
-                print("hey")
+            
             if u.pendingUpstream > 0:
                 # This site is not ready for assignment
                 # Re-add it to the queue at the end
@@ -935,12 +935,12 @@ def removeUseless(net,addLengths=False):
     i = 0
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
-        cs = sit.connectedSites()
-        coni0 = cs[0]
-        coni1 = cs[1]
-        if len(cs) == 2 and coni0.reachCode == coni1.reachCode:
+        cs = sit.connectedSites()        
+        if len(cs) == 2 and cs[0][2].reachCode == cs[1][2].reachCode:
             # This site is deletable
-            
+            coni0 = cs[0]
+            coni1 = cs[1]
+
             if addLengths:
                 newLen = coni0[2].length + coni1[2].length
             else:
@@ -955,6 +955,7 @@ def removeUseless(net,addLengths=False):
                 # coni0 is upstream of 'sit'
                 # coni1 is downstream
                 fl2Add = Flow(coni1[2].id,coni0[0],coni1[0],newLen,coni1[2].reachCode) 
+            
             net.removeInvolvedFlows(sit)
             coni0[0].removeInvolvedFlows(sit)
             coni1[0].removeInvolvedFlows(sit)
@@ -963,6 +964,8 @@ def removeUseless(net,addLengths=False):
             coni0[0].flowsCon.append(fl2Add)
             coni1[0].flowsCon.append(fl2Add)
             net.flowTable.append(fl2Add)
+            if i > 0:
+                i -= 1
         else:
             i += 1
 

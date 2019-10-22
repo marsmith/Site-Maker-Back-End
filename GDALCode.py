@@ -283,29 +283,15 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
             
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
+    
     removeUseless(netti,True)
+    # Visualize the network
+    # t = test.TestPrecompiler()
+    # t.create_files(netti)
+    # Visualizer.create_visuals("hello")
+    
     netti.calculateUpstreamDistances()
       
-    
-#     # Display all in folium GeoJSON
-#     m = folium.Map(location=[y,x],zoom_start=13)
-#     folium.Marker([y,x],popup='<b>USER_CLICK</b>').add_to(m)
-    
-#     for i in range(len(interSites)):
-#         sentry = interSites[i]
-#         geoJ = geomToGeoJSON(sentry[1],"",10,sl.GetSpatialRef(),oRef)
-#         if i == 12:
-#             print(geoJ)
-#         folium.GeoJson(data=geoJ).add_to(m)  
-    
-#     # Draw all the interLines onto the folium map
-#     for lentry in interLines:
-        
-#         geoJ = geomToGeoJSON(lentry.GetGeometryRef(),"",10,linesLayer.GetSpatialRef(),oRef)
-#         folium.GeoJson(data=geoJ).add_to(m)    
-    
-#     display(m)
-    
     
     # Do unit length calculations based on real existing sites and network length
     
@@ -319,6 +305,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     
     
 if __name__ == "__main__":
-    net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project",-73.939645996,42.378012068,5000)
+    net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project",-73.9071283,42.3565272,1000)
+    #net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project",-73.939645996,42.378012068,5000)
 
     
