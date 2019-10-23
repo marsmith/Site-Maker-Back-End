@@ -11,6 +11,7 @@ from net_tracer import net_tracer
 JUPYTER = False
 UC_BUFFER_MIN = 1000 # 1 km
 UC_BUFFER_MAX = 10000 # 10 km
+INITIAL_UCLICK_SWEEP = 1 # 1m
 def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
     '''
     Matry's Function! Converts Geometry to GeoJSON
@@ -71,6 +72,11 @@ class Node(object):
 
     
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX):
+    # Create vars for return information
+    starterFlow = None
+
+    
+    
     # Load Lines
     path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
     
@@ -158,7 +164,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     i = 0
     startingIndex = None
     for line in interLines:       
-        e = (line.GetGeometryRef().Buffer(1),False)
+        e = (line.GetGeometryRef().Buffer(INITIAL_UCLICK_SWEEP),False)
         lBufferStore[line] = e[1] # Original Line, Buffered Geometry 
         if ucBuff.Intersects(e[0]):
             startingLine = line
@@ -174,10 +180,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
    
     while len(queue) > 0:
-        # Visualize the lines in stages
-        
-        
-        
+        # Visualize the lines in stages       
         e = queue.pop(0) # This will be the line
         lL.append(e)
         if JUPYTER:
@@ -305,7 +308,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             fCode = e.GetFieldAsString(lineFCode_index)
             fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!
             
+
             f = Flow(fid,upSite,downSite,flen,fRC)
+            if e == startingLine:
+                starterFlow = f
             # Line has been constructed, add to the table
             upSite.flowsCon.append(f)
             downSite.flowsCon.append(f)
@@ -353,31 +359,61 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     # Visualize the network
    
     
-    return netti
+    return [netti,inputPointProj,startingLine,starterFlow]
     
     
     
     
     
 if __name__ == "__main__":
-    
-    net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",-73.9071283,42.3565272,1000,10000)
+    x = -73.9071283
+    y = 42.3565272
+    JUPYTER = False
+    [net,ucPoint,startingLine,startFlow] = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",x,y,1000,10000)
     net.calculateUpstreamDistances()
-    calcStraihler(net)
-    
-
+    calcStraihler(net)   
     rsc = net_tracer(net)
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("hello")
+    
     # Next, run the normal algorithm but do not overwrite the calculated ones
     iSNA(net,rsc)
 
+    # Next, compute the new ID from the given network / starterLine
+    # Determine if the startFlow shares a comfluence at the bottom with another flow
+    cs = startFlow.downstreamSite.connectedSites()
+    ups = startFlow.upstreamSite
+    otherBranch = None
+    numDown = 0
+    for con in cs:
+        if con[1] == UPSTREAM_CON and con[0] != ups:
+            otherBranch = con[2]
+        elif con[1] == UPSTREAM_CON:
+            continue
+        else:
+            numDown += 1
+    upstreamID = startFlow.upstreamSite.id
+    downstreamID = None
+    if otherBranch is None:
+        # We are at a loop head or at a sink -> node point. Just use the upstream and downstream     
+        downstreamID = startFlow.downstreamSite.assignedID        
+    else:
+        if startFlow < otherBranch:
+            downstreamID = startFlow.downstreamSite.assignedID
+        else:
+            downstreamID = startFlow.downstreamSite.downwardRefID
 
-    print("AYOOOWAYOOO")
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("hello2")
+    # Find out how far along the line the x,y click is
+    l_geom = startingLine.GetGeometryRef()
+    ucBuff = ucPoint.Buffer(1)
+    ldiff = l_geom.Difference(ucBuff)
+    assert(ldiff.GetGeometryCount() == 2)
+
+    ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
+    lengthP = startFlow.length * ucToLower_Frac
+
+    YAY = downstreamID - lengthP
+    print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
+
+
     
 
     

@@ -44,7 +44,7 @@ def net_tracer(network):
                 break
 
 
-            if current_flow.thisAndUpstream < other_flow.thisAndUpstream:
+            if current_flow < other_flow:
                 # current <= other
                 if (curr.assignedID is -1 or curr.assignedID is None ):
                     r = curr.id

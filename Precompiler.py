@@ -278,7 +278,7 @@ class SiteID(object):
                     n.extension -= e
                     # We have an extension; make sure not to go under
                     if n.extension <= 0:
-                        n.extension = None
+                        n.extension = 100 - abs(n.extension)
                         n.value -= 1 # Increment the value up by one  
                 else:
                     n.extension = e
@@ -1278,6 +1278,7 @@ def iSNA(net,rsc):
             elif u.downwardRefID is None:
 
                 newSiteID = lastRef - fl.length
+                u.downwardRefID = lastRef
             else:
                 newSiteID = u.downwardRefID - fl.length            
             lastRef = pSNA(net,newSiteID,startSite,False)
