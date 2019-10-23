@@ -132,7 +132,7 @@ class SiteID(object):
     def __init__(self,stringg):
         self.value = int(stringg)
         self.id = int(stringg)
-        self.watershed = str("%012d"%0)
+        self.watershed = 0
         self.fullID = int(int(self.watershed) + self.id)
         if len(stringg) > 8:
             self.extension = stringg[8:]
@@ -149,7 +149,7 @@ class SiteID(object):
         if self.extension is None:
             return str("%08d"%self.id)
         else:
-            return str("%10d"%self.id)
+            return str("%010d"%self.id)
     def __lt__(self,other):
         '''
         Performs a '<' comparison between the calling SiteID and other
@@ -224,12 +224,13 @@ class SiteID(object):
                 raise RuntimeWarning("WARNING! Adding two different watersheded ID's")                      
             return SiteID("{0}".format(self.fullID + other.fullID))          
         
-        elif type(self) is SiteID:            
+        elif type(self) is SiteID:  
+            n = SiteID(str(self.value))
+            n.watershed = self.watershed
+            n.extension = self.extension          
             if int(other) != other and int(other) <= 1:                
                 e = int(other * 100)
-                n = SiteID(str(self.value))
-                n.watershed = self.watershed
-                n.extension = self.extension
+                
                 if not n.extension is None:
                     n.extension += e
                     # We have an extension; make sure not to go over
@@ -244,8 +245,13 @@ class SiteID(object):
                 # We do not need to add an extension
                 if not n.extension is None:
                     n.extension = None  
-            
-            n.id = n.value # Additional tagon since the watershed change
+
+            if not n.extension is None:
+                n.id = int(str(n.value) + str(n.extension)) 
+            else:
+                n.id = n.value
+
+            n.fullID = n.id # Additional tagon since the watershed change
             return n
 
         elif type(other) is SiteID:
@@ -262,11 +268,12 @@ class SiteID(object):
         
         elif type(self) is SiteID:
             # Does the current site have extensions
+            n = SiteID(str(self.value))
+            n.watershed = self.watershed
+            n.extension = self.extension
             if int(other) != other and int(other) <= 1:                 
                 e = 100 - int(other * 100)
-                n = SiteID(str(self.value))
-                n.watershed = self.watershed
-                n.extension = self.extension
+                
                 if not n.extension is None:
                     n.extension -= e
                     # We have an extension; make sure not to go under
@@ -281,8 +288,13 @@ class SiteID(object):
                 # We do not need to add an extension
                 if not n.extension is None:
                     n.extension = None  
+            
+            if not n.extension is None:
+                n.id = int(str(n.value) + str(n.extension)) 
+            else:
+                n.id = n.value
 
-            n.id = n.value # Additional tagon since the watershed change
+            n.fullID = n.id
             return n
  
 
@@ -1046,7 +1058,7 @@ def removeUseless(net,addLengths=False):
             i += 1
 
 def calcStraihler(net):
-    faucets = calculateFaucets(net)
+    faucets = net.calculateFaucets()
     queue = []
     for flow in net.flowTable:
         if flow.upstreamSite in faucets:
@@ -1054,7 +1066,7 @@ def calcStraihler(net):
             if flow.downstreamSite not in queue:
                 queue.append(flow.downstreamSite)
     
-    sink = calculateSink(net)[0]
+    sink = net.calculateSink()[0]
 
     while(queue):
         curr = queue.pop(0)
@@ -1098,7 +1110,7 @@ def calcStraihler(net):
                     queue.append(f.downstreamSite)
             
 
-def pSNA(net,maxDownstreamID,sinkSite = None):
+def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
     '''
     Will assign real ID's to the fake nodes via the Proportional Site Naming Algorithm
     1km is the mininum distance to generate unique 8 digit ID's. The network must represent the 
@@ -1112,7 +1124,8 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
     net [Network]: Network to perform algorithm on.
     maxDownstreamID [SiteID]: The maximal ID for the network. (This is what the sinksite will be)
     sinkSite [Site]: [Optional!] The lowermost site in the network. Parent to all. If not provided, will be computed 
-
+    strict [Boolean]: [Optional!] Determines if alg will allow for already ID'd nodes in the network. If False, will only look for
+                        downwardsRefID's and skip if there is one
     '''
     def alg(idBefore,totalAccum,leng,unitDist): 
         ''' 
@@ -1134,14 +1147,24 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             if newExt >= 99:
                 # You should have decremented the value, mathematically
                 newValue -= 1
-                return SiteID(idBefore.watershed,newValue)
+                n = SiteID(str(newValue))
+                n.watershed = idBefore.watershed
+                return n
             if newExt == idBefore.extension:                
-                # Add one to the previous extension and try
-                return SiteID(idBefore.watershed,newValue,idBefore.extension + 1)             
+                # Sub one to the previous extension and try
+                n = SiteID(str(idBefore.value))
+                n.watershed = idBefore.watershed
+                n.extension = idBefore.extension - 1
+                return n         
             else:
-                return SiteID(idBefore.watershed,newValue,newExt)
+                n = SiteID(str(idBefore.value - 1))
+                n.watershed = idBefore.watershed
+                n.extension = 100 - newExt
+                return n
         else:
-            return SiteID(idBefore.watershed,newValue)
+            n = SiteID(str(newValue))
+            n.watershed = idBefore.watershed
+            return n
     #---------------------------------------------------------------------
 
     # Use bitwise or to format final values
@@ -1157,12 +1180,12 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
         # Pop out the tuple
         t = queue.pop(0)
         u = t[0]
-        if u.assignedID >= 0:
+        if u.assignedID >= 0 and u.downwardRefID is None:
             # ID has already been assigned, must mean we just need to grab 
             # reference ID for this node
             u.downwardRefID = getLowestUpstreamNumber(net,u)
             continue
-
+            
         if t[2] is None:
             # Assume we are at start
             distAccum += 0
@@ -1211,6 +1234,56 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             u.downstreamID = idNext # The previous downstream ID is this
             idNext = newID
 
+    return idNext # Return the last ID generated
+
+def iSNA(net,rsc):
+    '''
+    Altered version of pSNA for running with real sites in network
+    '''
+    
+    # Use bitwise or to format final values
+    
+    queue = []  
+    
+    # Step 1: Starting from the sink site, assign the site.assignedID field
+    
+    distAccum = 0
+    i = 0
+    lastRef = None
+    while i in range(len(rsc)):
+        queue.append(rsc[i])
+        while len(queue) >= 1:
+            # Pop out the tuple
+            u = queue.pop(0)
+            
+            
+            # Basically go one layer out and then run pSNA from that point
+            # Find the flow that has no data
+            cs = u.connectedSites()
+            startSite = None
+            fl = None
+            for con in cs:
+                if con[1] == UPSTREAM_CON:
+                    if con[0].assignedID < 0 or con[0].assignedID is None:
+                        # We have a blank site. Start from here
+                        startSite = con[0]
+                        fl = con[2]
+                        break
+            if startSite is None:
+                print("INVALID START from {0}".format(u))
+                break
+            if u.downwardRefID is None and lastRef is None:
+                print("We are in trouble now")
+                raise RuntimeError("ERROR: Lost track of lowest reference ID upstream")
+            elif u.downwardRefID is None:
+
+                newSiteID = lastRef - fl.length
+            else:
+                newSiteID = u.downwardRefID - fl.length            
+            lastRef = pSNA(net,newSiteID,startSite,False)
+            
+
+        i += 1
 
 def getLowestUpstreamNumber(net,site):
     '''
@@ -1222,5 +1295,5 @@ def getLowestUpstreamNumber(net,site):
 
     Returns [SiteID]: Furthest upstream's SiteID
     '''
-    return navigateFurthestUpstream(net,site).assignedID
+    return net.navigateFurthestUpstream(site).assignedID
 

@@ -228,9 +228,11 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                         
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
                         print("made unique Site {0}".format(sid))
-                        s = Site(sid,upPt.GetX(),upPt.GetY(),0,isl=True)
+                        s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0,isl=True)
+                        s.assignedID = sid
                         sitesStore[s_geom] = s
-                        upSite = s                      
+                        upSite = s     
+                        siteCounter += 1                 
                   
                 elif s_geom.Intersects(downPt):
                     # Found existing lower extent
@@ -246,8 +248,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                         # Need to create our own an add it to the table
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
                         print("made unique Site {0}".format(sid))
-                        s = Site(sid,downPt.GetX(),downPt.GetY(),0,isl=True)
+                        s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0,isl=True)
                         sitesStore[s_geom] = s
+                        siteCounter += 1
+                        s.assignedID = sid
                         downSite = s
                  
                 
@@ -347,9 +351,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
     # Visualize the network
-    t = test.TestPrecompiler()
-    t.create_files(netti)
-    Visualizer.create_visuals("hello")
+   
     
     return netti
     
@@ -360,12 +362,22 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 if __name__ == "__main__":
     
     net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",-73.9071283,42.3565272,1000,10000)
+    net.calculateUpstreamDistances()
+    calcStraihler(net)
     
-    net_tracer(net)
-    print("AYOOOWAYOOO")
+
+    rsc = net_tracer(net)
     t = test.TestPrecompiler()
     t.create_files(net)
     Visualizer.create_visuals("hello")
+    # Next, run the normal algorithm but do not overwrite the calculated ones
+    iSNA(net,rsc)
+
+
+    print("AYOOOWAYOOO")
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("hello2")
     
 
     
