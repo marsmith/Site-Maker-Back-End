@@ -9,8 +9,8 @@ import folium
 from Precompiler import *
 from net_tracer import net_tracer
 JUPYTER = False
-UC_BUFFER_SIZE = 5000 #km
-
+UC_BUFFER_MIN = 1000 # 1 km
+UC_BUFFER_MAX = 10000 # 10 km
 def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
     '''
     Matry's Function! Converts Geometry to GeoJSON
@@ -70,7 +70,7 @@ class Node(object):
     
 
     
-def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_SIZE):
+def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX):
     # Load Lines
     path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
     
@@ -90,22 +90,28 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     inputPointProj = ogr.Geometry(ogr.wkbPoint)
     inputPointProj.SetPoint_2D(0,p_lng,p_lat)
     r_ctran = osr.CoordinateTransformation(targRef,oRef)
-
-    geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry
- 
-    # Load Selected Sites
+    # Load Sites
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
     ctran = osr.CoordinateTransformation(sl.GetSpatialRef(),targRef)
-    
-    # Intersect of BUFFER and SITES
+
+    dist = minDist
     interSites = []
-    for site in sl:
-        ingeom_site = site.GetGeometryRef()
-        if ingeom_site.Intersect(geomBuffer):
-            # This site is inside the buffer!
-            interSites.append((site,ingeom_site.Buffer(1)))
-    print("There are {0} sites inside the ring!".format(len(interSites)))
+    while len(interSites) < 1 and dist <= maxDist:
+        geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry        
+        # Intersect of BUFFER and SITES        
+        for site in sl:
+            ingeom_site = site.GetGeometryRef()
+            if ingeom_site.Intersect(geomBuffer):
+                # This site is inside the buffer!
+                interSites.append((site,ingeom_site.Buffer(1)))
+        if len(interSites) < 1:
+            dist += 1000 # Expand by 2km
+            print("Expanding to {0} km".format(dist / 1000))
+    print("There are {0} sites inside the {1} km circle".format(len(interSites),dist / 1000))
+
+
+    
     # Load Selected Lines
     dataSource = ogr.Open(path)
     shpdriver = ogr.GetDriverByName('ESRI Shapefile')
@@ -352,7 +358,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     
     
 if __name__ == "__main__":
-    net = isolateNetwork("/Users/nicknack/Downloads/GDAL_DATA_PR","SitesSnapped_Project","NHDFlowline_Project_SplitFINAL",-73.9071283,42.3565272,1000)
+    
+    net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",-73.9071283,42.3565272,1000,10000)
     
     net_tracer(net)
     print("AYOOOWAYOOO")
