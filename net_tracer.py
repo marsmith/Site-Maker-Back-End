@@ -17,9 +17,11 @@ def net_tracer(network):
                     current_flow = flow
                     break
             
+
             for flow in network.flowTable:
-                if flow.downstreamSite == current_flow.downstreamSite:
+                if flow.downstreamSite == current_flow.downstreamSite and flow.upstreamSite != real_site:
                     other_flow = flow
+                    break
             
             if current_flow.thisAndUpstream < other_flow.thisAndUpstream:
                 #Assign confluence

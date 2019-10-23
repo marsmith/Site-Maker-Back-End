@@ -139,9 +139,6 @@ class SiteID(object):
             assert(len(self.extension) == 2)
         else:
             self.extension = None
-
-
-
     
     def __str__(self):
         '''
@@ -218,6 +215,33 @@ class SiteID(object):
             return self.fullID == other
         else:
             return self.fullID == other.fullID
+
+    def __add__(self, other):
+        if type(self) is SiteID and type(other) is SiteID:
+            return self.fullID + other.fullID
+        
+        elif type(self) is SiteID:
+            return self.fullID + int(other)
+
+        elif type(other) is SiteID:
+            return other.fullID + int(self)
+        else:
+            return int(self) + int(other)
+
+    def __sub__(self, other):
+        if type(self) is SiteID and type(other) is SiteID:
+            return abs(self.fullID - other.fullID)
+        
+        elif type(self) is SiteID:
+            return abs(self.fullID - int(other))
+
+        elif type(other) is SiteID:
+            return abs(other.fullID - int(self))
+        else:
+            return abs(int(self) - int(other))
+
+
+
     __repr__ = __str__
 
 
