@@ -130,7 +130,7 @@ class SiteID(object):
         self.extension = extension
 
     def __init__(self,stringg):
-        self.value = stringg
+        self.value = int(stringg)
         self.id = int(stringg)
         self.watershed = str("%012d"%0)
         self.fullID = int(int(self.watershed) + self.id)
@@ -217,23 +217,74 @@ class SiteID(object):
             return self.fullID == other.fullID
 
     def __add__(self, other):
-        if type(self) is SiteID and type(other) is SiteID:
-            return self.fullID + other.fullID
         
-        elif type(self) is SiteID:
-            return self.fullID + int(other)
+        if type(self) is SiteID and type(other) is SiteID:
+            if self.watershed != other.watershed:
+                # Warning! Adding two different watershed ID's may proove bad
+                raise RuntimeWarning("WARNING! Adding two different watersheded ID's")                      
+            return SiteID("{0}".format(self.fullID + other.fullID))          
+        
+        elif type(self) is SiteID:            
+            if int(other) != other and int(other) <= 1:                
+                e = int(other * 100)
+                n = SiteID(str(self.value))
+                n.watershed = self.watershed
+                n.extension = self.extension
+                if not n.extension is None:
+                    n.extension += e
+                    # We have an extension; make sure not to go over
+                    if n.extension > 99:
+                        n.extension = None
+                        n.value += 1 # Increment the value up by one
+                else:
+                    n.extension = e   
+                    n.value += 1               
+            else:
+                n.value += int(other)
+                # We do not need to add an extension
+                if not n.extension is None:
+                    n.extension = None  
+            
+            n.id = n.value # Additional tagon since the watershed change
+            return n
 
         elif type(other) is SiteID:
-            return other.fullID + int(self)
+            return other.fullID + int(self) #?
         else:
             return int(self) + int(other)
 
     def __sub__(self, other):
         if type(self) is SiteID and type(other) is SiteID:
-            return abs(self.fullID - other.fullID)
+            if self.watershed != other.watershed:
+                # Warning! Subtracting two different watershed ID's may proove bad
+                raise RuntimeWarning("WARNING! Subtracting two different watersheded ID's")                      
+            return SiteID("{0}".format(self.fullID - other.fullID))
         
         elif type(self) is SiteID:
-            return abs(self.fullID - int(other))
+            # Does the current site have extensions
+            if int(other) != other and int(other) <= 1:                 
+                e = 100 - int(other * 100)
+                n = SiteID(str(self.value))
+                n.watershed = self.watershed
+                n.extension = self.extension
+                if not n.extension is None:
+                    n.extension -= e
+                    # We have an extension; make sure not to go under
+                    if n.extension <= 0:
+                        n.extension = None
+                        n.value -= 1 # Increment the value up by one  
+                else:
+                    n.extension = e
+                    n.value -= 1                 
+            else:
+                n.value -= int(other)
+                # We do not need to add an extension
+                if not n.extension is None:
+                    n.extension = None  
+
+            n.id = n.value # Additional tagon since the watershed change
+            return n
+ 
 
         elif type(other) is SiteID:
             return abs(other.fullID - int(self))

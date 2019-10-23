@@ -363,4 +363,9 @@ if __name__ == "__main__":
     
     net_tracer(net)
     print("AYOOOWAYOOO")
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("hello")
+    
+
     
