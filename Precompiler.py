@@ -133,7 +133,7 @@ class SiteID(object):
         self.value = stringg
         self.id = int(stringg)
         self.watershed = str("%012d"%0)
-        self.fullID = int(self.watershed + self.id)
+        self.fullID = int(int(self.watershed) + self.id)
         if len(stringg) > 8:
             self.extension = stringg[8:]
             assert(len(self.extension) == 2)
@@ -935,6 +935,7 @@ def removeUseless(net,addLengths=False):
     i = 0
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
+
         cs = sit.connectedSites()        
         if len(cs) == 2 and cs[0][2].reachCode == cs[1][2].reachCode:
             # This site is deletable

@@ -3,12 +3,12 @@ from osgeo import ogr
 from osgeo import osr
 from osgeo import gdal_array
 from osgeo import gdalconst
-from net_tracer import *
 import os
 import json
 import folium
 from Precompiler import *
-
+from net_tracer import net_tracer
+JUPYTER = False
 UC_BUFFER_SIZE = 5000 #km
 
 def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
@@ -72,9 +72,9 @@ class Node(object):
     
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_SIZE):
     # Load Lines
-    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
+    path = folderPath + "\\" + lineLayerName + "\\" + lineLayerName + ".shp"
     
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    path_sites = folderPath + "\\" + siteLayerName + "\\" + siteLayerName + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -89,7 +89,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     [p_lng,p_lat,z] = ctran.TransformPoint(x,y)
     inputPointProj = ogr.Geometry(ogr.wkbPoint)
     inputPointProj.SetPoint_2D(0,p_lng,p_lat)
-
+    r_ctran = osr.CoordinateTransformation(targRef,oRef)
 
     geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry
  
@@ -144,7 +144,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     
     sitesStore = {}# Stores Site object (fake site)
     flowList = [] # Stores Flowline object (flow)
-    
+    lL = []
     
     # Create Buffer polygon where user clicked    
     # Find line which ucBuff intersects
@@ -168,7 +168,22 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     
    
     while len(queue) > 0:
+        # Visualize the lines in stages
+        
+        
+        
         e = queue.pop(0) # This will be the line
+        lL.append(e)
+        if JUPYTER:
+            m = folium.Map(location=[y,x],zoom_start=13)
+            
+            for lentry in lL:
+            
+                geoJ = geomToGeoJSON(lentry.GetGeometryRef(),"",10,linesLayer.GetSpatialRef(),oRef)
+                folium.GeoJson(data=geoJ).add_to(m)    
+        
+            display(m)
+            
         if lBufferStore[e] == True:
             # We have already visited this
             continue
@@ -191,6 +206,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
             # Check if any real sites exist at the endpoint
             for s in interSites:
                 s_geom = s[1]
+                
                 if s_geom.Intersects(upPt):
                     # Found existing upper extent
                     b_f[0] = True
@@ -203,11 +219,13 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
                             
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
-                        sid = SiteID(s.GetFieldAsString(siteNumber_index))
-                        s = Site(sid,s_geom.GetX(),s_geom.GetY(),0,isl=True)
-                        sitesStore[s_geom] = s
-                        upSite = s
                         
+                        sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                        print("made unique Site {0}".format(sid))
+                        s = Site(sid,upPt.GetX(),upPt.GetY(),0,isl=True)
+                        sitesStore[s_geom] = s
+                        upSite = s                      
+                  
                 elif s_geom.Intersects(downPt):
                     # Found existing lower extent
                     b_f[1] = True
@@ -220,8 +238,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
                             
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
-                        sid = SiteID(s.GetFieldAsString(siteNumber_index))
-                        s = Site(sid,s_geom.GetX(),s_geom.GetY(),0,isl=True)
+                        sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                        print("made unique Site {0}".format(sid))
+                        s = Site(sid,downPt.GetX(),downPt.GetY(),0,isl=True)
                         sitesStore[s_geom] = s
                         downSite = s
                  
@@ -284,15 +303,39 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
             
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
-    
     removeUseless(netti,True)
-    # Visualize the network
-    # t = test.TestPrecompiler()
-    # t.create_files(netti)
-    # Visualizer.create_visuals("hello")
-    
-    netti.calculateUpstreamDistances()
+    #netti.calculateUpstreamDistances()
       
+    if JUPYTER:
+    # Display all in folium GeoJSON
+        m = folium.Map(location=[y,x],zoom_start=13)
+        folium.Marker([y,x],popup='<b>USER_CLICK</b>').add_to(m)
+        
+        for i in range(len(interSites)):
+            sentry = interSites[i]
+            geoJ = geomToGeoJSON(sentry[1],"",10,sl.GetSpatialRef(),oRef)
+            
+            print(geoJ)
+            
+            folium.GeoJson(data=geoJ).add_to(m)  
+            p = sentry[0].GetGeometryRef()
+            
+            x = p.GetX()
+            y = p.GetY()
+            [rla,rlong,z] = r_ctran.TransformPoint(x,y)
+            
+            print("Putting marker at: {0}, {1}".format(rla,rlong))
+            
+            folium.Marker([rlong,rla],popup='<b>#SITE#</b>').add_to(m)
+        # Draw all the interLines onto the folium map
+        
+        for lentry in lL:
+            
+            geoJ = geomToGeoJSON(lentry.GetGeometryRef(),"",10,linesLayer.GetSpatialRef(),oRef)
+            folium.GeoJson(data=geoJ).add_to(m)    
+        
+        display(m)
+    
     
     # Do unit length calculations based on real existing sites and network length
     
@@ -305,8 +348,12 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,dist = UC_BUFFER_S
     return netti
     
     
+    
+    
+    
 if __name__ == "__main__":
-    net = isolateNetwork("/Users/nicknack/Downloads/GDAL_DATA_PR","SitesSnapped_Project","NHDFlowline_Project",-73.9071283,42.3565272,1000)
+    net = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",-73.9071283,42.3565272,1000)
+    
     net_tracer(net)
     print("AYOOOWAYOOO")
     
