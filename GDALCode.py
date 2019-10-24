@@ -12,6 +12,7 @@ JUPYTER = False
 UC_BUFFER_MIN = 1000 # 1 km
 UC_BUFFER_MAX = 10000 # 10 km
 INITIAL_UCLICK_SWEEP = 1 # 1m
+
 def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
     '''
     Matry's Function! Converts Geometry to GeoJSON
@@ -458,12 +459,14 @@ if __name__ == "__main__":
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
             iSNA(net,rsc)
+            interpolateLine()
         else:
             # Scenario <>-- ... -- (target flow) --- ... ---<>
             # Only isolate a network from lIndex to uIndex
             nettL = orderedList[lIndex:uIndex + 1] # (becacuse slicing isnt inclusive in python)
             sl = []
             fl = []
+
             for obj in nettL:
                 if isinstance(obj,Site):
                     sl.append(obj)
@@ -475,11 +478,22 @@ if __name__ == "__main__":
             netti.recalculateTotalLength()
             # Calculate the new UnitLength based on:
             diff = sl[0] - sl[len(sl) - 1] # A SiteID - SiteID should give me a decimal number or something
-            
+            UL = diff / netti.totalSize
 
-            
+            if abs(UL) != UL:
+                # We have an error in SiteID's. The downstream ID is lower than the upstream ID
+                # Revert to case where we have one real upstream ID only
+                rsc = net_tracer(net)    
+                # Next, run the normal algorithm but do not overwrite the calculated ones
+                iSNA(net,rsc)
+                interpolateLine()
+            else:
+                # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
+                # should work out, in theory!
+                netti.unitLength = UL
+                pSNA(netti,sl[0].assignedID,sl[0])
+                interpolateLine()
 
-        pass
 
     
 
