@@ -372,6 +372,9 @@ if __name__ == "__main__":
     [net,ucPoint,startingLine,startFlow] = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",x,y,1000,10000)
     net.calculateUpstreamDistances()
     calcStraihler(net)   
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("not yet")
     rsc = net_tracer(net)
     
     # Next, run the normal algorithm but do not overwrite the calculated ones
@@ -409,7 +412,9 @@ if __name__ == "__main__":
 
     ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
     lengthP = startFlow.length * ucToLower_Frac
-
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("working")
     YAY = downstreamID - lengthP
     print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
 
