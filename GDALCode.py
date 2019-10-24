@@ -375,49 +375,113 @@ if __name__ == "__main__":
     t = test.TestPrecompiler()
     t.create_files(net)
     Visualizer.create_visuals("not yet")
-    rsc = net_tracer(net)
-    
-    # Next, run the normal algorithm but do not overwrite the calculated ones
-    iSNA(net,rsc)
 
-    # Next, compute the new ID from the given network / starterLine
-    # Determine if the startFlow shares a comfluence at the bottom with another flow
-    cs = startFlow.downstreamSite.connectedSites()
-    ups = startFlow.upstreamSite
-    otherBranch = None
-    numDown = 0
-    for con in cs:
-        if con[1] == UPSTREAM_CON and con[0] != ups:
-            otherBranch = con[2]
-        elif con[1] == UPSTREAM_CON:
-            continue
+    reals = net.getRealSites()
+
+    def interpolateLine():
+        '''
+        Will compute the ID for the new site based on ambient data in this surrounding function
+        '''
+        cs = startFlow.downstreamSite.connectedSites()
+        ups = startFlow.upstreamSite
+
+        otherBranch = None
+      
+        for con in cs:
+            if con[1] == UPSTREAM_CON and con[0] != ups:
+                otherBranch = con[2]
+
+        upstreamID = startFlow.upstreamSite.id
+        downstreamID = None
+        if otherBranch is None:
+            # We are at a loop head or at a sink -> node point. Just use the upstream and downstream     
+            downstreamID = startFlow.downstreamSite.assignedID        
         else:
-            numDown += 1
-    upstreamID = startFlow.upstreamSite.id
-    downstreamID = None
-    if otherBranch is None:
-        # We are at a loop head or at a sink -> node point. Just use the upstream and downstream     
-        downstreamID = startFlow.downstreamSite.assignedID        
+            if startFlow < otherBranch:
+                downstreamID = startFlow.downstreamSite.assignedID
+            else:
+                downstreamID = startFlow.downstreamSite.downwardRefID
+
+        # Find out how far along the line the x,y click is
+        l_geom = startingLine.GetGeometryRef()
+        ucBuff = ucPoint.Buffer(1)
+        ldiff = l_geom.Difference(ucBuff)
+        assert(ldiff.GetGeometryCount() == 2)
+
+        ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
+        lengthP = startFlow.length * ucToLower_Frac
+        
+        YAY = downstreamID - lengthP
+        print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
+
+    # -------- DIFFERENT REAL SITE CASES -------------------------
+    #------------------------------------------------------------
+    if len(reals) == 1:
+        rsc = net_tracer(net)    
+        # Next, run the normal algorithm but do not overwrite the calculated ones
+        iSNA(net,rsc)
+        interpolateLine()
+       
+    elif len(reals) < 1:
+        # We need to base our siteID off of the length of the networks which the other
+        # next numbered sites sharing the first four numbers are on.
+        # If we are our first ID to have the first four digits we have,
+        # then pick the first four digits and tack on 5000, to make it in the middle
+
+        pass
     else:
-        if startFlow < otherBranch:
-            downstreamID = startFlow.downstreamSite.assignedID
+        # We must conform to the SiteTheory Standard for multiple sites
+        # Determine order of execution
+        orderedList = testFlight(net,startFlow)
+        fIndex = -1
+        lIndex = -1 # Index of lower site (a site below the target flow)
+        uIndex = -1 # Index of upper site (a site above the target flow)
+        for i in range(len(orderedList)):
+            obj = orderedList[i]
+            if isinstance(obj,Flow) and obj == startFlow:
+                fIndex = i
+            elif isinstance(obj,Site) and (obj.assignedID > 0 or not obj.assignedID is None):
+                # We have a real site
+                if fIndex == -1:
+                    lIndex = i
+                else:
+                    uIndex = i
+        # Determine the scenario 
+        if uIndex == -1 and (lIndex > -1 and fIndex > -1):
+            # Scenario <>---...---- (target flow)
+            # Run PSNA from the lower site
+            pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
+            interpolateLine()
+        elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
+            # Scenario ---- (target flow) ---...---<>
+            # Run iSNA as if we had a single site
+            rsc = net_tracer(net)    
+            # Next, run the normal algorithm but do not overwrite the calculated ones
+            iSNA(net,rsc)
         else:
-            downstreamID = startFlow.downstreamSite.downwardRefID
+            # Scenario <>-- ... -- (target flow) --- ... ---<>
+            # Only isolate a network from lIndex to uIndex
+            nettL = orderedList[lIndex:uIndex + 1] # (becacuse slicing isnt inclusive in python)
+            sl = []
+            fl = []
+            for obj in nettL:
+                if isinstance(obj,Site):
+                    sl.append(obj)
+                elif isInstance(obj,Flow):
+                    fl.append(object)
 
-    # Find out how far along the line the x,y click is
-    l_geom = startingLine.GetGeometryRef()
-    ucBuff = ucPoint.Buffer(1)
-    ldiff = l_geom.Difference(ucBuff)
-    assert(ldiff.GetGeometryCount() == 2)
+            netti = Network(fl,sl)
+            netti.calculateUpstreamDistances()
+            netti.recalculateTotalLength()
+            # Calculate the new UnitLength based on:
+            diff = sl[0] - sl[len(sl) - 1] # A SiteID - SiteID should give me a decimal number or something
+            
 
-    ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
-    lengthP = startFlow.length * ucToLower_Frac
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("working")
-    YAY = downstreamID - lengthP
-    print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
+            
 
+        pass
+
+    
 
     
 
