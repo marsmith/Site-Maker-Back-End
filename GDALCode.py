@@ -443,10 +443,22 @@ if __name__ == "__main__":
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
         # next numbered sites sharing the first four numbers are on.
+
+        # OPTION A
         # If we are our first ID to have the first four digits we have,
         # then pick the first four digits and tack on 5000, to make it in the middle
 
+        
+        # OPTION B
+        # Isolate the networks which the site below in # and the site above in # are on.
+        # Calculate a padding value based on the length of both of these networks and the length
+        # of our own network
+
+
         pass
+
+
+
     else:
         # We must conform to the SiteTheory Standard for multiple sites
         # Determine order of execution
