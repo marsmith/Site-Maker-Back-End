@@ -5,6 +5,12 @@ from plotly.offline import download_plotlyjs, plot
 import networkx as nx
 from Precompiler import *
 import webbrowser
+import test
+
+def visualize(net):
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    create_visuals("Visualize-Net")
 
 def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
     L=len(Xn)

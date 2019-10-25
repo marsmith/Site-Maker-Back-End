@@ -370,10 +370,12 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 if __name__ == "__main__":
-    #x = -73.9071283
+    #x = -73.9071283 Test 001
    # y = 42.3565272
-    x = -73.8218579
-    y = 44.3838118
+    #x = -73.8218579 Loopy Mess Success
+    #y = 44.3838118
+    x = -73.6728187
+    y = 44.4410200
     JUPYTER = False
     [net,ucPoint,startingLine,startFlow] = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",x,y,2000,10000)
     net.calculateUpstreamDistances()
@@ -384,10 +386,6 @@ if __name__ == "__main__":
     reals = net.getRealSites()
 
     def interpolateLine():
-
-        t= test.TestPrecompiler()
-        t.create_files(net)
-        Visualizer.create_visuals("hello")
 
         '''
         Will compute the ID for the new site based on ambient data in this surrounding function
@@ -452,7 +450,9 @@ if __name__ == "__main__":
     else:
         # We must conform to the SiteTheory Standard for multiple sites
         # Determine order of execution
+        
         orderedList = testFlight(net,startFlow)
+        
         fIndex = -1
         lIndex = -1 # Index of lower site (a site below the target flow)
         uIndex = -1 # Index of upper site (a site above the target flow)
@@ -460,12 +460,13 @@ if __name__ == "__main__":
             obj = orderedList[i]
             if isinstance(obj,Flow) and obj == startFlow:
                 fIndex = i
-            elif isinstance(obj,Site) and (obj.assignedID > 0 or not obj.assignedID is None):
+            elif isinstance(obj,Site) and (obj.assignedID > 0):
                 # We have a real site
                 if fIndex == -1:
                     lIndex = i
                 else:
                     uIndex = i
+                    break # Weve found the upper index, break
         # Determine the scenario 
         if uIndex == -1 and (lIndex > -1 and fIndex > -1):
             # Scenario <>---...---- (target flow)
@@ -489,14 +490,16 @@ if __name__ == "__main__":
             for obj in nettL:
                 if isinstance(obj,Site):
                     sl.append(obj)
-                elif isInstance(obj,Flow):
-                    fl.append(object)
+                elif isinstance(obj,Flow):
+                    fl.append(obj)
 
             netti = Network(fl,sl)
-            netti.calculateUpstreamDistances()
+            
+            
             netti.recalculateTotalLength()
+            #Visualizer.visualize(netti)
             # Calculate the new UnitLength based on:
-            diff = sl[0] - sl[len(sl) - 1] # A SiteID - SiteID should give me a decimal number or something
+            diff = sl[0].assignedID - sl[len(sl) - 1].assignedID # A SiteID - SiteID should give me a decimal number or something
             UL = diff / netti.totalSize
 
             if abs(UL) != UL:
@@ -510,9 +513,48 @@ if __name__ == "__main__":
                 # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
                 # should work out, in theory!
                 netti.unitLength = UL
-                pSNA(netti,sl[0].assignedID,sl[0])
-                interpolateLine()
 
+                uSiteID = sl[0].assignedID - (sl[0].flowsCon[0].length * UL)
+                # Go based on the orderedList Now, since basing off of a new would be a disaster
+                # (i.e.) due to the removal process, some things will be disconnected or 
+                # unreachable
+                distAccum = 0
+                deltaD = 0
+                currID = None
+                for i in range(lIndex,uIndex):
+                    obj = orderedList[i]
+                    if isinstance(obj,Site):                        
+                        if currID is None:
+                            currID = obj.assignedID
+                            continue # First iteration, no counting
+                        else:
+                            # Try to compute a new ID for this object
+                            # Since the ordered list is essentially a linearized network, we can
+                            # just subtract each time
+                            currID = currID - (deltaD * UL)
+                        if obj.assignedID < 0 or obj.assignedID is None:
+                            # We dont have an obj ID yet, assign
+                            obj.assignedID = currID
+                    elif isinstance(obj,Flow):
+                        if obj.downstreamSite.assignedID < 0:
+                            # Lets pretend were using the reference ID (the currID)
+                            obj.downstreamSite.assignedID = currID
+
+                        deltaD = obj.length
+                        distAccum += obj.length                
+                # Here we must do our own interpolate line because we have a
+                # special disjointed network case
+                
+                l_geom = startingLine.GetGeometryRef()
+                ucBuff = ucPoint.Buffer(1)
+                ldiff = l_geom.Difference(ucBuff)
+                assert(ldiff.GetGeometryCount() == 2)
+
+                ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
+                lengthP = orderedList[fIndex].length * ucToLower_Frac
+                
+                YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
+                print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
 
     
 

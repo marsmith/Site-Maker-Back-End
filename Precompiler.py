@@ -263,8 +263,17 @@ class SiteID(object):
         if type(self) is SiteID and type(other) is SiteID:
             if self.watershed != other.watershed:
                 # Warning! Subtracting two different watershed ID's may proove bad
-                raise RuntimeWarning("WARNING! Subtracting two different watersheded ID's")                      
-            return SiteID("{0}".format(self.fullID - other.fullID))
+                raise RuntimeWarning("WARNING! Subtracting two different watersheded ID's")     
+            else:
+                # Need to find the difference in value
+                inty = self.value - other.value
+                e1 = 0.0
+                if not self.extension is None:
+                    e1 = self.extension / 100
+                e2 = 0.0
+                if not other.extension is None:
+                    e2 = other.extension / 100
+            return inty + e1 - e2
         
         elif type(self) is SiteID:
             # Does the current site have extensions
@@ -756,21 +765,15 @@ class Network(object):
         Raises RuntimeError if there is a multiple sink situation
         '''
         faucets = self.calculateFaucets()
-        itr = 0
+        
         # Written by Nicole and Marcus
         queue = list(faucets)
         while len(queue) >= 1:
-            itr += 1
-            if itr > 10000:
-                t = test.TestPrecompiler()
-                t.create_files(self)
-                Visualizer.create_visuals("stuck")
-                print("Here ya go")
+            
 
             u = queue.pop(0)
             cs = u.connectedSites()
-            if u.id == 5:
-                print("5")
+            
             cntr = 0
             for con in cs:
                 if con[1] == UPSTREAM_CON:
@@ -1139,7 +1142,7 @@ def calcStraihler(net):
 
     while(queue):
         curr = queue.pop(0)
-        print(curr)
+        
         if curr.id == sink.id:
             break
         down = []
@@ -1182,7 +1185,7 @@ def calcStraihler(net):
 def testFlight(net,ucFlow,sinkSite = None):
     # Use bitwise or to format final values
     if sinkSite is None:
-        sinkSite = calculateSink(net)
+        sinkSite = net.calculateSink()[0]
     
     orderedEncounter = []
     
@@ -1190,15 +1193,15 @@ def testFlight(net,ucFlow,sinkSite = None):
     starterTuple = (sinkSite,None,None)  
     queue.append(starterTuple)
     # Step 1: Starting from the sink site, assign the site.assignedID field
-    idNext = maxDownstreamID
-    distAccum = 0
+    
     while len(queue) >= 1:
         # Pop out the tuple
         t = queue.pop(0)
         u = t[0]
-        f = t[2]        
-        
-        orderedEncounter.append(f)
+        f = t[2]
+        u.extraVar = 1        
+        if not f is None:
+            orderedEncounter.append(f)
         orderedEncounter.append(u)
         
         cs = u.connectedSites()
@@ -1220,25 +1223,18 @@ def testFlight(net,ucFlow,sinkSite = None):
             for conTup in lifechoices:
                 queue.insert(iIns,conTup)
                 iIns += 1
-            refIDTup = (u,None,None)
-            if len(cs) > 2:
-                # 3 way branch; needs reference ID
-                queue.insert(iIns,refIDTup)
+            
         elif len(cs) == 1:
             # Non-Confluence, append to the end of the queue
             # This is to handle special cases such as loops
-            if cs[0][0].assignedID < 0:
+            if cs[0][0].extraVar == 0:
                 # Not assgned yet!
                 queue.append(cs[0])
         else:
-            # INVALID NODE
-            #raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
-            pass
-        if t[2] is None:
-            u.extraVar = 1
-            
-        else:      
-            u.extraVar = 1
+            # Select the upstream node to go on
+            assert(len(lifechoices) == 1)
+            queue.append(lifechoices[0])
+        
     return orderedEncounter
             
 # --------------------------------------------------
@@ -1260,7 +1256,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
     strict [Boolean]: [Optional!] Determines if alg will allow for already ID'd nodes in the network. If False, will only look for
                         downwardsRefID's and skip if there is one
     '''
-    def alg(idBefore,totalAccum,leng,unitDist): 
+    def alg(idBefore,leng,unitDist = 1): 
         ''' 
         Internal core algorithm. 
         idBefore [SiteID]: What the ID was before
@@ -1269,7 +1265,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
         unitDist [number]: How long before the value portion of an ID ticks down to -1
                             of the previous
         '''       
-        return idBefore - leng
+        return idBefore - (leng * unitDist)
     #---------------------------------------------------------------------
 
     # Use bitwise or to format final values
@@ -1280,7 +1276,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
     queue.append(starterTuple)
     # Step 1: Starting from the sink site, assign the site.assignedID field
     idNext = maxDownstreamID
-    distAccum = 0
+    
     while len(queue) >= 1:
         # Pop out the tuple
         t = queue.pop(0)
@@ -1290,12 +1286,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             # reference ID for this node
             u.downwardRefID = getLowestUpstreamNumber(net,u)
             continue
-            
-        if t[2] is None:
-            # Assume we are at start
-            distAccum += 0
-        else:
-            distAccum += t[2].length
+        
         cs = u.connectedSites()
         lifechoices = [] # The upstream paths we may choose              
         for theCon in cs:
@@ -1316,10 +1307,10 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             for conTup in lifechoices:
                 queue.insert(iIns,conTup)
                 iIns += 1
-            # refIDTup = (u,None,None)    I have no idea why this is in here
-            # if len(cs) > 2:
-            #     # 3 way branch; needs reference ID
-            #     queue.insert(iIns,refIDTup)
+            refIDTup = (u,None,"REF")    
+            if len(cs) > 2 and u.downwardRefID is None:
+                # 3 way branch; needs reference ID
+                queue.insert(iIns,refIDTup)
         elif len(cs) == 1:
             # Non-Confluence, append to the end of the queue
             # This is to handle special cases such as loops
@@ -1335,10 +1326,12 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             u.assignedID = maxDownstreamID
             idNext = u.assignedID
         else:
-            newID = alg(idNext,distAccum,t[2].length,net.unitLength)        
-            u.assignedID = newID
-            u.downstreamID = idNext # The previous downstream ID is this
-            idNext = newID
+            if isinstance(t[2],Flow):
+                # We are not assigning a reference ID
+                newID = alg(idNext,t[2].length,net.unitLength)        
+                u.assignedID = newID
+                u.downstreamID = idNext # The previous downstream ID is this
+                idNext = newID
 
     return idNext # Return the last ID generated
 
