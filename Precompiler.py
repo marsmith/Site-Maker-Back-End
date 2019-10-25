@@ -805,6 +805,57 @@ class Network(object):
                 else:
                     dcon.thisAndUpstream = totalDown 
 
+    
+    def calculateUpstreamDistances2(self):
+        '''
+        Recalculates the upstream distances for each Site in a Network starting from each faucet 
+        (furthest sites from the sink, dendrites)
+
+
+        net [Network]: Network to perform operations on.
+        faucets [List(Of Site)]: A premade list of faucets used to complete method
+
+        Returns [None]
+        Raises RuntimeError if there is a multiple sink situation
+        '''
+        #written by Nicole
+        queue = []
+        dist = dict()
+        faucets = self.calculateFaucets()
+        for flow in self.flowTable:
+            if flow.upstreamSite in faucets:
+                queue.append(flow.id)
+                dist[flow.id] = flow.length
+                flow.thisAndUpstream = flow.length
+                
+        for flow in self.flowTable:            
+            if flow.id not in queue:
+                dist[flow.id] = 1000000000000          
+                queue.append(flow.id)                         
+
+        while len(queue) > 0:                  
+            v = min(queue, key=lambda x: dist[x])  
+            queue.remove(v)
+            
+            v = self.find_flow(v)
+            for flow in self.flowTable:    
+                if flow.upstreamSite == v.downstreamSite: 
+                    cs = flow.upstreamSite.connectedSites()
+                    alt = flow.length
+                    for tup in cs:    
+                        if tup[1] == UPSTREAM_CON:
+                            alt+=tup[2].thisAndUpstream             
+                    dist[flow.id] = alt
+                    flow.thisAndUpstream = alt
+        
+        for f in self.flowTable:
+            print("Upstream %d, downstream %d, length %f, thisAndUpstream %f" %(f.upstreamSite.id, f.downstreamSite.id, f.length, dist[f.id]))
+    
+    def find_flow(self, id_number):
+        for flow in self.flowTable:
+            if flow.id == id_number:
+                return flow
+
 
     def calculateFaucets(self):    
         '''

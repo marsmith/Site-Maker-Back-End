@@ -178,7 +178,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     queue = [] # Stores keys
     queue.append(startingLine)
     
-   
+    counter = 0
     while len(queue) > 0:
         # Visualize the lines in stages       
         e = queue.pop(0) # This will be the line
@@ -302,7 +302,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                     sitesStore[downPt.Buffer(1)] = s
                     siteCounter += 1
                     
-            fid = e.GetFieldAsString(lineID_index)
+            fid = counter
             flen = float(e.GetFieldAsString(lineLength_index))
             fName = e.GetFieldAsString(lineName_index)
             fCode = e.GetFieldAsString(lineFCode_index)
@@ -310,6 +310,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             
 
             f = Flow(fid,upSite,downSite,flen,fRC)
+            counter +=1
             if e == startingLine:
                 starterFlow = f
             # Line has been constructed, add to the table
@@ -369,8 +370,12 @@ if __name__ == "__main__":
     x = -73.9071283
     y = 42.3565272
     JUPYTER = False
-    [net,ucPoint,startingLine,startFlow] = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_Data_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",x,y,1000,10000)
+    [net,ucPoint,startingLine,startFlow] = isolateNetwork("/Users/nicknack/Downloads/GDAL_DATA_PR","SitesSnapped_Project","NHDFlowline_Project_SplitFINAL",x,y,1000,10000)
     net.calculateUpstreamDistances()
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    Visualizer.create_visuals("fuck")
+    print(net.calculateUpstreamDistances2())
     calcStraihler(net)   
     rsc = net_tracer(net)
     
