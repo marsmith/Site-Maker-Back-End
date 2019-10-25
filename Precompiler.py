@@ -239,7 +239,7 @@ class SiteID(object):
                         n.value += 1 # Increment the value up by one
                 else:
                     n.extension = e   
-                    n.value += 1               
+                                  
             else:
                 n.value += int(other)
                 # We do not need to add an extension
@@ -271,7 +271,7 @@ class SiteID(object):
             n = SiteID(str(self.value))
             n.watershed = self.watershed
             n.extension = self.extension
-            if int(other) != other and int(other) <= 1:                 
+            if int(other) != other and int(other) < 1:                 
                 e = 100 - int(other * 100)
                 
                 if not n.extension is None:
@@ -756,12 +756,21 @@ class Network(object):
         Raises RuntimeError if there is a multiple sink situation
         '''
         faucets = self.calculateFaucets()
+        itr = 0
         # Written by Nicole and Marcus
         queue = list(faucets)
         while len(queue) >= 1:
+            itr += 1
+            if itr > 10000:
+                t = test.TestPrecompiler()
+                t.create_files(self)
+                Visualizer.create_visuals("stuck")
+                print("Here ya go")
+
             u = queue.pop(0)
             cs = u.connectedSites()
-            
+            if u.id == 5:
+                print("5")
             cntr = 0
             for con in cs:
                 if con[1] == UPSTREAM_CON:
@@ -795,8 +804,8 @@ class Network(object):
                             totalDown += entry[2].length
                             dcon = entry[2]
                             # Append downstream site if not already in the queue
-                            if entry[0] not in queue:
-                                queue.append(entry[0])
+                        if entry[0] not in queue:
+                            queue.append(entry[0])
                     else:                   
                         totalUp += entry[2].thisAndUpstream
                 totalDown += totalUp
@@ -823,11 +832,19 @@ class Network(object):
         queue = []
         dist = dict()
         faucets = self.calculateFaucets()
-        for flow in self.flowTable:
-            if flow.upstreamSite in faucets:
-                queue.append(flow.id)
-                dist[flow.id] = flow.length
-                flow.thisAndUpstream = flow.length
+
+        
+        for fauc in faucets:
+            f = faucets[0].flowsCon[0][2]
+            queue.append(f.id)
+            dist[f.id] = f.length
+            f.thisAndUpstream = f.length
+
+        # for flow in self.flowTable:
+        #     if flow.upstreamSite in faucets:
+        #         queue.append(flow.id)
+        #         dist[flow.id] = flow.length
+        #         flow.thisAndUpstream = flow.length
                 
         for flow in self.flowTable:            
             if flow.id not in queue:
@@ -1252,35 +1269,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
         unitDist [number]: How long before the value portion of an ID ticks down to -1
                             of the previous
         '''       
-        frac = leng / unitDist        
-        newValue = int(idBefore.value - numpy.floor(frac))        
-        if newValue == idBefore.value:
-            # Alter the extension            
-            unitExt = unitDist / 100
-            newExt = int(numpy.floor(leng / unitExt))
-            if not idBefore.extension is None:            
-                newExt += idBefore.extension
-            if newExt >= 99:
-                # You should have decremented the value, mathematically
-                newValue -= 1
-                n = SiteID(str(newValue))
-                n.watershed = idBefore.watershed
-                return n
-            if newExt == idBefore.extension:                
-                # Sub one to the previous extension and try
-                n = SiteID(str(idBefore.value))
-                n.watershed = idBefore.watershed
-                n.extension = idBefore.extension - 1
-                return n         
-            else:
-                n = SiteID(str(idBefore.value - 1))
-                n.watershed = idBefore.watershed
-                n.extension = 100 - newExt
-                return n
-        else:
-            n = SiteID(str(newValue))
-            n.watershed = idBefore.watershed
-            return n
+        return idBefore - leng
     #---------------------------------------------------------------------
 
     # Use bitwise or to format final values
@@ -1297,7 +1286,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
         t = queue.pop(0)
         u = t[0]
         if u.assignedID >= 0 and u.downwardRefID is None:
-            # ID has already been assigned, must mean we just need to grab 
+            # ID has already been assigned and we are not at the sink, must mean we just need to grab 
             # reference ID for this node
             u.downwardRefID = getLowestUpstreamNumber(net,u)
             continue
@@ -1327,10 +1316,10 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             for conTup in lifechoices:
                 queue.insert(iIns,conTup)
                 iIns += 1
-            refIDTup = (u,None,None)
-            if len(cs) > 2:
-                # 3 way branch; needs reference ID
-                queue.insert(iIns,refIDTup)
+            # refIDTup = (u,None,None)    I have no idea why this is in here
+            # if len(cs) > 2:
+            #     # 3 way branch; needs reference ID
+            #     queue.insert(iIns,refIDTup)
         elif len(cs) == 1:
             # Non-Confluence, append to the end of the queue
             # This is to handle special cases such as loops
@@ -1341,6 +1330,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             # INVALID NODE
             #raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
             pass
+
         if t[2] is None:
             u.assignedID = maxDownstreamID
             idNext = u.assignedID

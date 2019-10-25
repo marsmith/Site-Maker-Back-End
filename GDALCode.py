@@ -79,9 +79,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
     # Load Lines
-    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
+    path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
     
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -105,16 +105,18 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     dist = minDist
     interSites = []
     while len(interSites) < 1 and dist <= maxDist:
-        geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry        
+        geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
+            
         # Intersect of BUFFER and SITES        
         for site in sl:
             ingeom_site = site.GetGeometryRef()
-            if ingeom_site.Intersect(geomBuffer):
+            if ingeom_site.Within(geomBuffer):
                 # This site is inside the buffer!
                 interSites.append((site,ingeom_site.Buffer(1)))
+        sl.ResetReading()
         if len(interSites) < 1:
             dist += 1000 # Expand by 2km
-            print("Expanding to {0} km".format(dist / 1000))
+            print("Expanding to {0} m".format(dist))
     print("There are {0} sites inside the {1} km circle".format(len(interSites),dist / 1000))
 
 
@@ -368,23 +370,25 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 if __name__ == "__main__":
-    x = -73.9071283
-    y = 42.3565272
+    #x = -73.9071283
+   # y = 42.3565272
+    x = -73.8218579
+    y = 44.3838118
     JUPYTER = False
-    [net,ucPoint,startingLine,startFlow] = isolateNetwork("/Users/nicknack/Downloads/GDAL_DATA_PR","SitesSnapped_Project","NHDFlowline_Project_SplitFINAL",x,y,1000,10000)
+    [net,ucPoint,startingLine,startFlow] = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",x,y,2000,10000)
     net.calculateUpstreamDistances()
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("fuck")
-    print(net.calculateUpstreamDistances2())
+    
     calcStraihler(net)   
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    Visualizer.create_visuals("not yet")
+    
 
     reals = net.getRealSites()
 
     def interpolateLine():
+
+        t= test.TestPrecompiler()
+        t.create_files(net)
+        Visualizer.create_visuals("hello")
+
         '''
         Will compute the ID for the new site based on ambient data in this surrounding function
         '''
@@ -418,14 +422,24 @@ if __name__ == "__main__":
         lengthP = startFlow.length * ucToLower_Frac
         
         YAY = downstreamID - lengthP
+        
         print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
+    
 
     # -------- DIFFERENT REAL SITE CASES -------------------------
     #------------------------------------------------------------
     if len(reals) == 1:
-        rsc = net_tracer(net)    
-        # Next, run the normal algorithm but do not overwrite the calculated ones
-        iSNA(net,rsc)
+        sink = net.calculateSink()[0]
+        if reals[0] == sink:
+            # We should run pSNA from the site upstream from the sink
+            uSiteID = sink.assignedID - sink.flowsCon[0].length
+
+            pSNA(net,uSiteID,sink.flowsCon[0].upstreamSite)
+
+        else:
+            rsc = net_tracer(net)    
+            # Next, run the normal algorithm but do not overwrite the calculated ones
+            iSNA(net,rsc)
         interpolateLine()
        
     elif len(reals) < 1:
