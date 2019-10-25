@@ -348,6 +348,7 @@ class Site(object):
         self.z = z
         self.h = h
         self.isReal = isl
+        self.extraVar = 0 # Used in the dryRun algorithm
         if flC == None:
             self.flowsCon = []
         self.assignedID = -1 # This is what is assigned via algorithm
@@ -1160,6 +1161,70 @@ def calcStraihler(net):
                 if f.downstreamSite not in queue:
                     queue.append(f.downstreamSite)
             
+
+def testFlight(net,ucFlow,sinkSite = None):
+    # Use bitwise or to format final values
+    if sinkSite is None:
+        sinkSite = calculateSink(net)
+    
+    orderedEncounter = []
+    
+    queue = []  
+    starterTuple = (sinkSite,None,None)  
+    queue.append(starterTuple)
+    # Step 1: Starting from the sink site, assign the site.assignedID field
+    idNext = maxDownstreamID
+    distAccum = 0
+    while len(queue) >= 1:
+        # Pop out the tuple
+        t = queue.pop(0)
+        u = t[0]
+        f = t[2]        
+        
+        orderedEncounter.append(f)
+        orderedEncounter.append(u)
+        
+        cs = u.connectedSites()
+        lifechoices = [] # The upstream paths we may choose              
+        for theCon in cs:
+            if theCon[1] == UPSTREAM_CON and theCon[0].extraVar == 0:
+                # The connection is upstream and has not been assigned yet
+                lifechoices.append(theCon)
+            elif theCon[1] == UPSTREAM_CON:
+                # This has been assigned already, seems like we are on a loop
+                pass
+        lifechoices.sort(key= lambda conTup1: conTup1[2],reverse=False)
+        # Add these future explorations into the queue in order
+        if len(cs) > 1:
+            # Confluence, append to the begining of queue
+            # but preserve the order of lifechoices in the queue as well        
+            # Standard procedure
+            iIns = 0
+            for conTup in lifechoices:
+                queue.insert(iIns,conTup)
+                iIns += 1
+            refIDTup = (u,None,None)
+            if len(cs) > 2:
+                # 3 way branch; needs reference ID
+                queue.insert(iIns,refIDTup)
+        elif len(cs) == 1:
+            # Non-Confluence, append to the end of the queue
+            # This is to handle special cases such as loops
+            if cs[0][0].assignedID < 0:
+                # Not assgned yet!
+                queue.append(cs[0])
+        else:
+            # INVALID NODE
+            #raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
+            pass
+        if t[2] is None:
+            u.extraVar = 1
+            
+        else:      
+            u.extraVar = 1
+    return orderedEncounter
+            
+# --------------------------------------------------
 
 def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
     '''
