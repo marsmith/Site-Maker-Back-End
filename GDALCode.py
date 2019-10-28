@@ -64,12 +64,21 @@ def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_re
 
     return geojson
 
-class Node(object):
-    def __init__(self,ownGeometry,edge1,edge2):
-        self.geom = ownGeometry
-        self.edge1 = edge1
-        self.edge2 = edge2
     
+def getFirstFourDigitFraming(folderPath,siteLayerName):    
+    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+
+    sitesDataSource = ogr.Open(path_sites)
+    sl = sitesDataSource.GetLayer()
+    siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+    ffDict = {} # Stores the first four 
+    for site in sl:
+        ff = site.GetFieldAsString(siteNumber_index)[0:4]
+        if ff in ffDict.keys():
+            continue 
+        else:
+            ffDict[ff] = "It's a secret message Luigi"
+    return list(ffDict.keys())
 
     
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX):
@@ -78,6 +87,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
     
     
+        
     # Load Lines
     path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
     
@@ -104,11 +114,19 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
     dist = minDist
     interSites = []
-    while len(interSites) < 1 and dist <= maxDist:
+
+    
+
+
+
+    while len(interSites) < 1 and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
         # Intersect of BUFFER and SITES        
         for site in sl:
+            # Grab information on the first four digits of the site
+            
+
             ingeom_site = site.GetGeometryRef()
             if ingeom_site.Within(geomBuffer):
                 # This site is inside the buffer!
@@ -363,10 +381,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     # Visualize the network
    
     
-    return [netti,inputPointProj,startingLine,starterFlow]
+    return [netti,inputPointProj,startingLine,starterFlow,sl,interSites]
     
     
-    
+
     
     
 if __name__ == "__main__":
@@ -374,15 +392,17 @@ if __name__ == "__main__":
    # y = 42.3565272
     #x = -73.8218579 Loopy Mess Success
     #y = 44.3838118
-    x = -73.6728187
-    y = 44.4410200
+    #x = -73.6728187 # Three sites on one network
+    #y = 44.4410200
+    x = -74.7000840
+    y = 43.9997973
     JUPYTER = False
-    [net,ucPoint,startingLine,startFlow] = isolateNetwork("C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL",x,y,2000,10000)
-    net.calculateUpstreamDistances()
-    
-    calcStraihler(net)   
-    
-
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    sitePath = "ProjectedSites"
+    lPath = "NHDFlowline_Project_SplitFINAL"
+    [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(folderPath,sitePath,lPath,x,y,2000,10000)
+    net.calculateUpstreamDistances()    
+    calcStraihler(net)     
     reals = net.getRealSites()
 
     def interpolateLine():
@@ -442,21 +462,36 @@ if __name__ == "__main__":
        
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
-        # next numbered sites sharing the first four numbers are on.
-
-        # OPTION A
-        # If we are our first ID to have the first four digits we have,
-        # then pick the first four digits and tack on 5000, to make it in the middle
-
+        # next numbered sites sharing the first four numbers are on.      
+        Visualizer.visualize(net)  
         
-        # OPTION B
-        # Isolate the networks which the site below in # and the site above in # are on.
-        # Calculate a padding value based on the length of both of these networks and the length
-        # of our own network
+        if len(interSites) == 0:
+            # We have no reference to base off of, select a new first four digit series and select the middle
+            digitBasis = getFirstFourDigitFraming(folderPath,sitePath)
+            digitBasis.sort()
+            # Find a gap in the numbers
+            before = None
+            for digits in digitBasis:
+                if before is None:
+                    before = digits
+                    continue
+                if int(digits) - int(before) > 1:
+                    # We have a gap
+                    break
+                else:
+                    before = digits            
+            newHighest = str((int(before) + 1) * 10000 + 5000)
+            newSiteID = SiteID(newHighest)
+            print("Your new SiteID is {0}".format(newSiteID))
 
-
-        pass
-
+        elif len(interSites) == 1:
+            # We have one site to base off of. Calculate the difference between this and the next lowest ID,
+            # then base the unit length off of that
+            pass
+        else:
+            # Presort the interSites by ID
+            # Take the range with the most room (interSites[0] to next lowest site, or interSites[len-1] to the next highest)
+            pass
 
 
     else:
