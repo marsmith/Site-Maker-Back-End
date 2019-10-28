@@ -424,7 +424,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None)
     net.calculateUpstreamDistances()    
-    calcStraihler(net)     
+    net.calcStraihler()    
     reals = net.getRealSites()
 
     def find_with_no_sites(dataFolder, siteLayerName):
@@ -511,7 +511,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
             # Radius recommended does not exceed upper bounds! Execute again
             [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,r)    
             net.calculateUpstreamDistances()    
-            calcStraihler(net)     
+            net.calcStraihler()    
             reals = net.getRealSites()
 
         if len(reals) == 0:

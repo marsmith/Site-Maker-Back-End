@@ -1017,6 +1017,57 @@ class Network(object):
                 break
             sInvest = flup.upstreamSite
         return sInvest
+    def calcStraihler(self):
+        faucets = self.calculateFaucets()
+        queue = []
+        for flow in self.flowTable:
+            if flow.upstreamSite in faucets:
+                flow.straihler = 1
+                if flow.downstreamSite not in queue:
+                    queue.append(flow.downstreamSite)
+        
+        sink = self.calculateSink()[0]
+
+        while(queue):
+            curr = queue.pop(0)
+            
+            if curr.id == sink.id:
+                break
+            down = []
+            up = []
+            for flow in self.flowTable:
+                if flow.downstreamSite == curr:
+                    down.append(flow)
+
+                if flow.upstreamSite == curr:
+                    up.append(flow)
+            # if curr.id == 13:
+            #     print()
+
+            if len(down) == 2 and down[0].upstreamSite == down[1].upstreamSite:
+                for f in down:
+                    if f.straihler == -1:
+                        down.remove(f)
+            flag = False
+            for flow in down:
+                if flow.straihler == -1:
+                    queue.append(curr)
+                    flag = True
+                    break
+            
+            if flag == True:
+                continue
+            vals = [f.straihler for f in down]
+            if len(vals) > 1 and all(elem == vals[0] for elem in vals):
+                for f in up:
+                    f.straihler = vals[0] + 1
+                    if f.downstreamSite not in queue:
+                        queue.append(f.downstreamSite)
+            else:
+                for f in up:
+                    f.straihler = max(vals)
+                    if f.downstreamSite not in queue:
+                        queue.append(f.downstreamSite)
 
     def subnetTrace(self,startSite):
         '''
@@ -1129,57 +1180,7 @@ def removeUseless(net,addLengths=False):
         else:
             i += 1
 
-def calcStraihler(net):
-    faucets = net.calculateFaucets()
-    queue = []
-    for flow in net.flowTable:
-        if flow.upstreamSite in faucets:
-            flow.straihler = 1
-            if flow.downstreamSite not in queue:
-                queue.append(flow.downstreamSite)
-    
-    sink = net.calculateSink()[0]
 
-    while(queue):
-        curr = queue.pop(0)
-        
-        if curr.id == sink.id:
-            break
-        down = []
-        up = []
-        for flow in net.flowTable:
-            if flow.downstreamSite == curr:
-                down.append(flow)
-
-            if flow.upstreamSite == curr:
-                up.append(flow)
-        # if curr.id == 13:
-        #     print()
-
-        if len(down) == 2 and down[0].upstreamSite == down[1].upstreamSite:
-            for f in down:
-                if f.straihler == -1:
-                    down.remove(f)
-        flag = False
-        for flow in down:
-            if flow.straihler == -1:
-                queue.append(curr)
-                flag = True
-                break
-        
-        if flag == True:
-            continue
-        vals = [f.straihler for f in down]
-        if len(vals) > 1 and all(elem == vals[0] for elem in vals):
-            for f in up:
-                f.straihler = vals[0] + 1
-                if f.downstreamSite not in queue:
-                    queue.append(f.downstreamSite)
-        else:
-            for f in up:
-                f.straihler = max(vals)
-                if f.downstreamSite not in queue:
-                    queue.append(f.downstreamSite)
             
 
 def testFlight(net,ucFlow,sinkSite = None):

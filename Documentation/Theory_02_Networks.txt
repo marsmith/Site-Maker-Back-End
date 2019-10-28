@@ -49,4 +49,12 @@ Flows which are Unadressable will not be able to be used to generate a new SiteI
                 |-------(3)----<--|                     But 1 to 3 is not effected. This is a downside if you need to be very specific but 
                                                         Works well if the loop is small and you dont need to worry.
 
-                            
+
+[Calculating Network-Wide Values]
+
+Length: To recalculate the total length of a network, you must call:
+    <network>.recalculateTotalLength()
+
+Unit Length: To change the unit length used, just change the following class var
+    <network>.unitLength
+
