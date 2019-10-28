@@ -80,14 +80,32 @@ def getFirstFourDigitFraming(folderPath,siteLayerName):
             ffDict[ff] = "It's a secret message Luigi"
     return list(ffDict.keys())
 
-    
+def getWBPolygon(folderPath,polyLayerName,inputLine):
+    '''
+    Will import the WBNHDPolygon and see if the input line is within it
+    PRECONDITION: Spatial Reference of the polyLayer and the input line
+    must be the same!
+
+    Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
+    if it could not be found
+    '''
+    path = str(folderPath) + "\\" + str(polyLayerName) + "\\" + str(polyLayerName) + ".shp"
+    polyDataSource = ogr.Open(path)
+    polyLayer = polyDataSource.GetLayer()
+
+    for poly in polyLayer:
+        if inputLine.GetGeometryRef().Within(poly):
+            return poly
+    return None
+
+
+
+
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX):
     # Create vars for return information
     starterFlow = None
 
-    
-    
-        
+     
     # Load Lines
     path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
     
@@ -456,7 +474,7 @@ if __name__ == "__main__":
             # Next, run the normal algorithm but do not overwrite the calculated ones
             iSNA(net,rsc)
         interpolateLine()
-       
+    
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
         # next numbered sites sharing the first four numbers are on.      
@@ -481,7 +499,8 @@ if __name__ == "__main__":
             newSiteID = SiteID(newHighest)
             print("Your new SiteID is {0}".format(newSiteID))
 
-        elif len(interSites) >= 1:
+
+        else:
             # Pick the interSite which is within the same WBDHU4 polygon
             # as the startingLine. If there are none, then run the case above (len reals == 0)
 
@@ -491,8 +510,9 @@ if __name__ == "__main__":
 
                 # If found real site, run alg as if we found 1 real initially
                 # Else, take largest gap in site #'s with the same first four numbers as the one
-                #selected in step 1, then plot starting at end with the higher of the two nums in the range
-
+                # selected in step 1, then plot starting at end with the higher of the two nums in the range
+            
+            pass
             
 
 
