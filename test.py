@@ -114,3 +114,7 @@ class TestPrecompiler(unittest.TestCase):
         self.create_files(netTup[0])
         #create_visuals("LoopTest001-NHDSubset")
 
+class TestProject(unittest.TestCase):
+    def test_NoSitesAround(self):
+        # Plug in all stuff from main
+        

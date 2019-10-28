@@ -8,10 +8,25 @@ import json
 import folium
 from Precompiler import *
 from net_tracer import net_tracer
+
+# Program Constants
 JUPYTER = False
 UC_BUFFER_MIN = 1000 # 1 km
 UC_BUFFER_MAX = 10000 # 10 km
+NY_STATE_AREA = 141299400000 # m^2
+MAX_CLUMP_FACTOR = 10
 INITIAL_UCLICK_SWEEP = 1 # 1m
+
+
+def determineOptimalSearchRadius(stateArea = NY_STATE_AREA,numberOfSites=None,clumpFactor=1):
+    '''
+    Gives an optimal radius for searching based on average sites per square meter in the state
+    clumpFactor [Number]: How clumpy are sites. 1 +; 1 being sites are evenly distributed, while higher numbers mean sites are less
+                            evenly distributed
+    '''
+    rat = numberOfSites / stateArea
+    r = numpy.sqrt((1 / rat) / numpy.pi) * clumpFactor
+    return r
 
 def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
     '''
@@ -101,7 +116,7 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
 
 
 
-def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX):
+def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None):
     # Create vars for return information
     starterFlow = None
 
@@ -132,6 +147,12 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
     dist = minDist
     interSites = []
+    numSites = len(sl)
+
+    if maxDist is None:
+        # If max distance is not provided, then we can use the 
+        # optimal solution
+        maxDist = determineOptimalSearchRadius(numberOfSites=numSites)
 
     
     while len(interSites) < 1 and dist < maxDist:
@@ -400,28 +421,13 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 
-    
-    
-if __name__ == "__main__":
-    #x = -73.9071283 Test 001
-   # y = 42.3565272
-    #x = -73.8218579 Loopy Mess Success
-    #y = 44.3838118
-    #x = -73.6728187 # Three sites on one network
-    #y = 44.4410200
-    x = -74.7000840
-    y = 43.9997973
-    JUPYTER = False
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    sitePath = "ProjectedSites"
-    lPath = "NHDFlowline_Project_SplitFINAL"
-    polyLayerName = "WBDHU4_Project"
-    [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(folderPath,sitePath,lPath,x,y,2000,10000)
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
+    [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None)
     net.calculateUpstreamDistances()    
     calcStraihler(net)     
     reals = net.getRealSites()
 
-    def find_with_no_sites(folderPath, sitePath):
+    def find_with_no_sites(dataFolder, siteLayerName):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(folderPath,sitePath)
             digitBasis.sort()
@@ -475,8 +481,7 @@ if __name__ == "__main__":
         
         YAY = downstreamID - lengthP
         
-        print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
-    
+        return YAY
 
     # -------- DIFFERENT REAL SITE CASES -------------------------
     #------------------------------------------------------------
@@ -497,45 +502,21 @@ if __name__ == "__main__":
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
         # next numbered sites sharing the first four numbers are on.      
-        Visualizer.visualize(net)  
-        
-        if len(interSites) == 0:
-            # We have no reference to base off of, select a new first four digit series and select the middle
-            newSite = find_with_no_sites(folderPath, sitePath)
-            print("Your new SiteID is {0}".format(newSite))
+         
+        # Try running again but this time go to the extreme,
+        # based on the site density of the state
+        r = determineOptimalSearchRadius(NY_STATE_AREA,len(siteLayer),3)
 
+        if r <= UC_BUFFER_MAX:
+            # Radius recommended does not exceed upper bounds! Execute again
+            [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,r)    
+            net.calculateUpstreamDistances()    
+            calcStraihler(net)     
+            reals = net.getRealSites()
 
-        else:
-            polygon = getWBPolygon(folderPath,polyLayerName,startingLine)
-            flag_found = False
-            for site in interSites:
-                if site[1].Within(polygon):
-                    found_flag = True
-                    continue
-
-            
-            if flag_found == False:
-                newSite = find_with_no_sites(folderPath, sitePath)
-                print("Your new SiteID is {0}".format(newSite))
-
-
-
-            # Pick the interSite which is within the same WBDHU4 polygon
-            # as the startingLine. If there are none, then run the case above (len reals == 0)
-
-                # Run isolateNetwork but this time, provide the argument to navigate unrestricted by buffer
-                # TODO: Make it so that isolateNetwork can accept a Boolean argument to navigate uninhibited by buffer
-                # and only stops when we encounter a real site or NHDWaterbody polygon
-
-                # If found real site, run alg as if we found 1 real initially
-                # Else, take largest gap in site #'s with the same first four numbers as the one
-                # selected in step 1, then plot starting at end with the higher of the two nums in the range
-            
-            pass
-            
-
-
-
+        if len(reals) == 0:
+            id = find_with_no_sites(folderPath,sitePath)
+            return id
     else:
         # We must conform to the SiteTheory Standard for multiple sites
         # Determine order of execution
@@ -643,7 +624,8 @@ if __name__ == "__main__":
                 lengthP = orderedList[fIndex].length * ucToLower_Frac
                 
                 YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
-                print("Your new ID for clicking on {0}, {1} is !!!!!!!\n{2}".format(x,y,YAY))
+                
+                return YAY
 
     
 
