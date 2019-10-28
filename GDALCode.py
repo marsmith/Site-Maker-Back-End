@@ -116,9 +116,6 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     interSites = []
 
     
-
-
-
     while len(interSites) < 1 and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
@@ -484,14 +481,20 @@ if __name__ == "__main__":
             newSiteID = SiteID(newHighest)
             print("Your new SiteID is {0}".format(newSiteID))
 
-        elif len(interSites) == 1:
-            # We have one site to base off of. Calculate the difference between this and the next lowest ID,
-            # then base the unit length off of that
-            pass
-        else:
-            # Presort the interSites by ID
-            # Take the range with the most room (interSites[0] to next lowest site, or interSites[len-1] to the next highest)
-            pass
+        elif len(interSites) >= 1:
+            # Pick the interSite which is within the same WBDHU4 polygon
+            # as the startingLine. If there are none, then run the case above (len reals == 0)
+
+                # Run isolateNetwork but this time, provide the argument to navigate unrestricted by buffer
+                # TODO: Make it so that isolateNetwork can accept a Boolean argument to navigate uninhibited by buffer
+                # and only stops when we encounter a real site or NHDWaterbody polygon
+
+                # If found real site, run alg as if we found 1 real initially
+                # Else, take largest gap in site #'s with the same first four numbers as the one
+                #selected in step 1, then plot starting at end with the higher of the two nums in the range
+
+            
+
 
 
     else:
