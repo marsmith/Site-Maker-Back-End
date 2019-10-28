@@ -412,14 +412,33 @@ if __name__ == "__main__":
     x = -74.7000840
     y = 43.9997973
     JUPYTER = False
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     sitePath = "ProjectedSites"
     lPath = "NHDFlowline_Project_SplitFINAL"
+    polyLayerName = "WBDHU4_Project"
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(folderPath,sitePath,lPath,x,y,2000,10000)
     net.calculateUpstreamDistances()    
     calcStraihler(net)     
     reals = net.getRealSites()
 
+    def find_with_no_sites(folderPath, sitePath):
+        # We have no reference to base off of, select a new first four digit series and select the middle
+            digitBasis = getFirstFourDigitFraming(folderPath,sitePath)
+            digitBasis.sort()
+            # Find a gap in the numbers
+            before = None
+            for digits in digitBasis:
+                if before is None:
+                    before = digits
+                    continue
+                if int(digits) - int(before) > 1:
+                    # We have a gap
+                    break
+                else:
+                    before = digits            
+            newHighest = str((int(before) + 1) * 10000 + 5000)
+            newSiteID = SiteID(newHighest)
+            return newSiteID
     def interpolateLine():
 
         '''
@@ -482,25 +501,25 @@ if __name__ == "__main__":
         
         if len(interSites) == 0:
             # We have no reference to base off of, select a new first four digit series and select the middle
-            digitBasis = getFirstFourDigitFraming(folderPath,sitePath)
-            digitBasis.sort()
-            # Find a gap in the numbers
-            before = None
-            for digits in digitBasis:
-                if before is None:
-                    before = digits
-                    continue
-                if int(digits) - int(before) > 1:
-                    # We have a gap
-                    break
-                else:
-                    before = digits            
-            newHighest = str((int(before) + 1) * 10000 + 5000)
-            newSiteID = SiteID(newHighest)
-            print("Your new SiteID is {0}".format(newSiteID))
+            newSite = find_with_no_sites(folderPath, sitePath)
+            print("Your new SiteID is {0}".format(newSite))
 
 
         else:
+            polygon = getWBPolygon(folderPath,polyLayerName,startingLine)
+            flag_found = False
+            for site in interSites:
+                if site[1].Within(polygon):
+                    found_flag = True
+                    continue
+
+            
+            if flag_found == False:
+                newSite = find_with_no_sites(folderPath, sitePath)
+                print("Your new SiteID is {0}".format(newSite))
+
+
+
             # Pick the interSite which is within the same WBDHU4 polygon
             # as the startingLine. If there are none, then run the case above (len reals == 0)
 
