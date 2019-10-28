@@ -417,19 +417,19 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     # Visualize the network
    
     
-    return [netti,inputPointProj,startingLine,starterFlow,sl,interSites]
+    return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
     
 
 def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
-    [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None)
+    [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None)
     net.calculateUpstreamDistances()    
     calcStraihler(net)     
     reals = net.getRealSites()
 
     def find_with_no_sites(dataFolder, siteLayerName):
         # We have no reference to base off of, select a new first four digit series and select the middle
-            digitBasis = getFirstFourDigitFraming(folderPath,sitePath)
+            digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
             digitBasis.sort()
             # Find a gap in the numbers
             before = None
@@ -505,7 +505,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
          
         # Try running again but this time go to the extreme,
         # based on the site density of the state
-        r = determineOptimalSearchRadius(NY_STATE_AREA,len(siteLayer),3)
+        r = determineOptimalSearchRadius(NY_STATE_AREA,numSites,3)
 
         if r <= UC_BUFFER_MAX:
             # Radius recommended does not exceed upper bounds! Execute again
@@ -515,7 +515,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
             reals = net.getRealSites()
 
         if len(reals) == 0:
-            id = find_with_no_sites(folderPath,sitePath)
+            id = find_with_no_sites(dataFolder,siteLayerName)
             return id
     else:
         # We must conform to the SiteTheory Standard for multiple sites
@@ -629,6 +629,12 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
 
     
 
-    
+if __name__ == "__main__":
+    #x = -73.6728187 # Three sites on one network
+    #y = 44.4410200
+    x = -74.7000840
+    y = 43.9997973
+
+    print(determineNewSiteID(x,y,"C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL"))
 
     

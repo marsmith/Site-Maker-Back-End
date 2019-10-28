@@ -117,4 +117,4 @@ class TestPrecompiler(unittest.TestCase):
 class TestProject(unittest.TestCase):
     def test_NoSitesAround(self):
         # Plug in all stuff from main
-        
+        pass
