@@ -1,0 +1,29 @@
+If there is a real lower site but no real upper site, then we run pSNA but plug in the 
+real site's ID as the maxDownstreamID
+
+If we have an upper site but no lower site, then we run the isolated network (based on GDAL and user click x,y)
+using iSNA
+
+If we have two or more sites on the GDAL isolated network, we must isolate a new network that encompases the line clicked
+as well as all sites and flows that would be encountered in order going from the closest real site to the sink
+and the closest real site upstream (in order of execution) from the line selected
+    -> Steps: Run code to get order of encounter of all sites and flows on the network. Make special tags to 
+    store when a real site is encountered and when we encountered our target flow
+
+    [(*) , () , () , ---, (), (*), (*) ] = example list of execution encounter (*) = REAL, --- = Target flow
+    Now, only generate a network using this information
+
+    Once the network is isolated, we must compute a unit length for the network
+        Based on the length  and the difference in number between the two sites closest
+        (in order of execution) to the target line
+                                                        in the above example, index 0 and index 5, call these lower site and upper site
+        
+        UL = (Difference in Number between upper site and lower site )/ (Length between upper site and lower site)
+        If UL is negative:
+            The lower site is invalid in numbering, so just use network based on UL of 1 and using the singular real
+            approach
+        
+        Else
+            Compute fake sites based on unit length
+
+        

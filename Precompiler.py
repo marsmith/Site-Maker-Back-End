@@ -113,8 +113,8 @@ class SiteID(object):
         value [number]: 'value' portion (0 to 99999999)
         extension [number]: Extension portion (0 to 99) (default=None)
         '''
-        frm = str("%04d"%watershed)
-        frm2 = str("%04d"%value)
+        frm = str("%012d"%watershed)
+        frm2 = str("%08d"%value)
         if extension is None:
             # 8 digit general ID
             self.fullID = int(frm + frm2)
@@ -129,7 +129,16 @@ class SiteID(object):
         self.value = value
         self.extension = extension
 
-    
+    def __init__(self,stringg):
+        self.value = int(stringg)
+        self.id = int(stringg)
+        self.watershed = 0
+        self.fullID = int(int(self.watershed) + self.id)
+        if len(stringg) > 8:
+            self.extension = stringg[8:]
+            assert(len(self.extension) == 2)
+        else:
+            self.extension = None
     
     def __str__(self):
         '''
@@ -140,7 +149,7 @@ class SiteID(object):
         if self.extension is None:
             return str("%08d"%self.id)
         else:
-            return str("%10d"%self.id)
+            return str("%010d"%self.id)
     def __lt__(self,other):
         '''
         Performs a '<' comparison between the calling SiteID and other
@@ -206,6 +215,105 @@ class SiteID(object):
             return self.fullID == other
         else:
             return self.fullID == other.fullID
+
+    def __add__(self, other):
+        
+        if type(self) is SiteID and type(other) is SiteID:
+            if self.watershed != other.watershed:
+                # Warning! Adding two different watershed ID's may proove bad
+                raise RuntimeWarning("WARNING! Adding two different watersheded ID's")                      
+            return SiteID("{0}".format(self.fullID + other.fullID))          
+        
+        elif type(self) is SiteID:  
+            n = SiteID(str(self.value))
+            n.watershed = self.watershed
+            n.extension = self.extension          
+            if int(other) != other and int(other) <= 1:                
+                e = int(other * 100)
+                
+                if not n.extension is None:
+                    n.extension += e
+                    # We have an extension; make sure not to go over
+                    if n.extension > 99:
+                        n.extension = None
+                        n.value += 1 # Increment the value up by one
+                else:
+                    n.extension = e   
+                                  
+            else:
+                n.value += int(other)
+                # We do not need to add an extension
+                if not n.extension is None:
+                    n.extension = None  
+
+            if not n.extension is None:
+                n.id = int(str(n.value) + str(n.extension)) 
+            else:
+                n.id = n.value
+
+            n.fullID = n.id # Additional tagon since the watershed change
+            return n
+
+        elif type(other) is SiteID:
+            return other.fullID + int(self) #?
+        else:
+            return int(self) + int(other)
+
+    def __sub__(self, other):
+        if type(self) is SiteID and type(other) is SiteID:
+            if self.watershed != other.watershed:
+                # Warning! Subtracting two different watershed ID's may proove bad
+                raise RuntimeWarning("WARNING! Subtracting two different watersheded ID's")     
+            else:
+                # Need to find the difference in value
+                inty = self.value - other.value
+                e1 = 0.0
+                if not self.extension is None:
+                    e1 = self.extension / 100
+                e2 = 0.0
+                if not other.extension is None:
+                    e2 = other.extension / 100
+            return inty + e1 - e2
+        
+        elif type(self) is SiteID:
+            # Does the current site have extensions
+            n = SiteID(str(self.value))
+            n.watershed = self.watershed
+            n.extension = self.extension
+            if int(other) != other and int(other) < 1:                 
+                e = 100 - int(other * 100)
+                
+                if not n.extension is None:
+                    n.extension -= e
+                    # We have an extension; make sure not to go under
+                    if n.extension <= 0:
+                        n.extension = 100 - abs(n.extension)
+                        n.value -= 1 # Increment the value up by one  
+                else:
+                    n.extension = e
+                    n.value -= 1                 
+            else:
+                n.value -= int(other)
+                # We do not need to add an extension
+                if not n.extension is None:
+                    n.extension = None  
+            
+            if not n.extension is None:
+                n.id = int(str(n.value) + str(n.extension)) 
+            else:
+                n.id = n.value
+
+            n.fullID = n.id
+            return n
+ 
+
+        elif type(other) is SiteID:
+            return abs(other.fullID - int(self))
+        else:
+            return abs(int(self) - int(other))
+
+
+
     __repr__ = __str__
 
 
@@ -232,7 +340,7 @@ class Site(object):
     ---------------------------------------------------------------------------
 
     '''
-    def __init__(self,id,lat,long,h,z=0,flC = None,isl = False):
+    def __init__(self,id,lat,long,h=0,z=0,flC = None,isl = False):
         '''
         Constructs a new Site object
 
@@ -249,6 +357,7 @@ class Site(object):
         self.z = z
         self.h = h
         self.isReal = isl
+        self.extraVar = 0 # Used in the dryRun algorithm
         if flC == None:
             self.flowsCon = []
         self.assignedID = -1 # This is what is assigned via algorithm
@@ -363,7 +472,7 @@ class Site(object):
         while i in range(len(self.flowsCon)):
             f = self.flowsCon[i]
             if f.upstreamSite == site or f.downstreamSite == site:
-                self.flowsCon.remove(f)
+                self.flowsCon.pop(i)
             else:
                 i += 1 
     
@@ -598,12 +707,29 @@ class Network(object):
         Returns [None]
         '''
         i = 0        
+        s = set()
         while i in range(len(self.flowTable)):
             f = self.flowTable[i]
             if f.upstreamSite == site or f.downstreamSite == site:
-                self.flowTable.remove(f)
-            else:
+                self.flowTable.pop(i)
+            else:               
                 i += 1
+    def getRealSites(self):
+        '''
+        Determines a list of all the real sites in this network
+
+        net [Network]: Network to perform analysis on
+
+        Returns List[Of Site] sites in the sitetable (byref) which
+        are real-world data collection sites (these probably also have already been assigned a real ID)
+
+        '''
+        r = []
+        for s in self.siteTable:
+            if s.isReal:
+                r.append(s)
+        return r
+
     def calculateSink(self):
         '''
         Calculate the sink for a given network. The sink is the most downstream
@@ -639,9 +765,12 @@ class Network(object):
         Raises RuntimeError if there is a multiple sink situation
         '''
         faucets = self.calculateFaucets()
+        
         # Written by Nicole and Marcus
         queue = list(faucets)
         while len(queue) >= 1:
+            
+
             u = queue.pop(0)
             cs = u.connectedSites()
             
@@ -652,8 +781,7 @@ class Network(object):
                     if con[0].pendingUpstream == 0:
                         cntr -= 1
             u.pendingUpstream = cntr
-            if u.id == 32:
-                print("hey")
+            
             if u.pendingUpstream > 0:
                 # This site is not ready for assignment
                 # Re-add it to the queue at the end
@@ -679,8 +807,8 @@ class Network(object):
                             totalDown += entry[2].length
                             dcon = entry[2]
                             # Append downstream site if not already in the queue
-                            if entry[0] not in queue:
-                                queue.append(entry[0])
+                        if entry[0] not in queue:
+                            queue.append(entry[0])
                     else:                   
                         totalUp += entry[2].thisAndUpstream
                 totalDown += totalUp
@@ -689,6 +817,65 @@ class Network(object):
                     raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
                 else:
                     dcon.thisAndUpstream = totalDown 
+
+    
+    def calculateUpstreamDistances2(self):
+        '''
+        Recalculates the upstream distances for each Site in a Network starting from each faucet 
+        (furthest sites from the sink, dendrites)
+
+
+        net [Network]: Network to perform operations on.
+        faucets [List(Of Site)]: A premade list of faucets used to complete method
+
+        Returns [None]
+        Raises RuntimeError if there is a multiple sink situation
+        '''
+        #written by Nicole
+        queue = []
+        dist = dict()
+        faucets = self.calculateFaucets()
+
+        
+        for fauc in faucets:
+            f = faucets[0].flowsCon[0][2]
+            queue.append(f.id)
+            dist[f.id] = f.length
+            f.thisAndUpstream = f.length
+
+        # for flow in self.flowTable:
+        #     if flow.upstreamSite in faucets:
+        #         queue.append(flow.id)
+        #         dist[flow.id] = flow.length
+        #         flow.thisAndUpstream = flow.length
+                
+        for flow in self.flowTable:            
+            if flow.id not in queue:
+                dist[flow.id] = 1000000000000          
+                queue.append(flow.id)                         
+
+        while len(queue) > 0:                  
+            v = min(queue, key=lambda x: dist[x])  
+            queue.remove(v)
+            
+            v = self.find_flow(v)
+            for flow in self.flowTable:    
+                if flow.upstreamSite == v.downstreamSite: 
+                    cs = flow.upstreamSite.connectedSites()
+                    alt = flow.length
+                    for tup in cs:    
+                        if tup[1] == UPSTREAM_CON:
+                            alt+=tup[2].thisAndUpstream             
+                    dist[flow.id] = alt
+                    flow.thisAndUpstream = alt
+        
+        for f in self.flowTable:
+            print("Upstream %d, downstream %d, length %f, thisAndUpstream %f" %(f.upstreamSite.id, f.downstreamSite.id, f.length, dist[f.id]))
+    
+    def find_flow(self, id_number):
+        for flow in self.flowTable:
+            if flow.id == id_number:
+                return flow
 
 
     def calculateFaucets(self):    
@@ -766,7 +953,40 @@ class Network(object):
                 # Keep progressing
                 rtrnFlow = dsCons[0][2]
                 s = dsCons[0][0]
+    def findSharedConfluence(self,site1,site2):
+        '''
+        Will navigate through the network to find the confluence
+        of two sites (nodes). Note: This will not work if there are loops potentially
+        '''
+        s1History = []
+        s2History = [] # Where these overlap is where the shared confluence is
+        
+        def popHistory(s,history):
+            while s != None:
+                history.append(s)
+                d = s.getDownstream()
+                u = s.getUpstream()
+                if len(d) == 1:
+                    # Use this downstream
+                    s = d[0][0]
+                else:
+                    if len(u) == 1 and len(d) == 0:
+                        # This is a sink, its fine  
+                        pass                      
+                    else:
+                        # This is not fine
+                        raise RuntimeError("Error: Are there loops?")
 
+        popHistory(site1,s1History)
+        popHistory(site2,s2History)
+
+        # Compare lists to find where they overlap
+        s1Set = frozenset(s1History)
+        s2Set = frozenset(s2History)
+
+        iSct = s1Set.intersection(s2Set)
+        return iSct[0]
+                    
 
     def navigateFurthestUpstream(self,site):
         '''
@@ -854,9 +1074,11 @@ def peq(siteList,site):
         if e.hasPositionalEquality(site):
             return e
     return site
+    
 
 
-def removeUseless(net):
+
+def removeUseless(net,addLengths=False):
     ''' 
     Will remove sites from the network with only two neighbors (1 up 1 down)
     Will then merge the two flows together into one flow, keeping the length
@@ -872,13 +1094,18 @@ def removeUseless(net):
     i = 0
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
-        cs = sit.connectedSites()
-        if len(cs) == 2:
+
+        cs = sit.connectedSites()        
+        if len(cs) == 2 and cs[0][2].reachCode == cs[1][2].reachCode:
             # This site is deletable
             coni0 = cs[0]
             coni1 = cs[1]
-            assert(coni0[2].length == coni1[2].length)
-            newLen = coni0[2].length
+
+            if addLengths:
+                newLen = coni0[2].length + coni1[2].length
+            else:
+                assert(coni0[2].length == coni1[2].length)
+                newLen = coni0[2].length
             fl2Add = None
             if coni0[1] == DOWNSTREAM_CON:
                 # coni0 is downstream of deletable site ('sit')
@@ -888,6 +1115,7 @@ def removeUseless(net):
                 # coni0 is upstream of 'sit'
                 # coni1 is downstream
                 fl2Add = Flow(coni1[2].id,coni0[0],coni1[0],newLen,coni1[2].reachCode) 
+            
             net.removeInvolvedFlows(sit)
             coni0[0].removeInvolvedFlows(sit)
             coni1[0].removeInvolvedFlows(sit)
@@ -896,11 +1124,13 @@ def removeUseless(net):
             coni0[0].flowsCon.append(fl2Add)
             coni1[0].flowsCon.append(fl2Add)
             net.flowTable.append(fl2Add)
+            if i > 0:
+                i -= 1
         else:
             i += 1
 
 def calcStraihler(net):
-    faucets = calculateFaucets(net)
+    faucets = net.calculateFaucets()
     queue = []
     for flow in net.flowTable:
         if flow.upstreamSite in faucets:
@@ -908,11 +1138,11 @@ def calcStraihler(net):
             if flow.downstreamSite not in queue:
                 queue.append(flow.downstreamSite)
     
-    sink = calculateSink(net)[0]
+    sink = net.calculateSink()[0]
 
     while(queue):
         curr = queue.pop(0)
-        print(curr)
+        
         if curr.id == sink.id:
             break
         down = []
@@ -952,7 +1182,64 @@ def calcStraihler(net):
                     queue.append(f.downstreamSite)
             
 
-def pSNA(net,maxDownstreamID,sinkSite = None):
+def testFlight(net,ucFlow,sinkSite = None):
+    # Use bitwise or to format final values
+    if sinkSite is None:
+        sinkSite = net.calculateSink()[0]
+    
+    orderedEncounter = []
+    
+    queue = []  
+    starterTuple = (sinkSite,None,None)  
+    queue.append(starterTuple)
+    # Step 1: Starting from the sink site, assign the site.assignedID field
+    
+    while len(queue) >= 1:
+        # Pop out the tuple
+        t = queue.pop(0)
+        u = t[0]
+        f = t[2]
+        u.extraVar = 1        
+        if not f is None:
+            orderedEncounter.append(f)
+        orderedEncounter.append(u)
+        
+        cs = u.connectedSites()
+        lifechoices = [] # The upstream paths we may choose              
+        for theCon in cs:
+            if theCon[1] == UPSTREAM_CON and theCon[0].extraVar == 0:
+                # The connection is upstream and has not been assigned yet
+                lifechoices.append(theCon)
+            elif theCon[1] == UPSTREAM_CON:
+                # This has been assigned already, seems like we are on a loop
+                pass
+        lifechoices.sort(key= lambda conTup1: conTup1[2],reverse=False)
+        # Add these future explorations into the queue in order
+        if len(cs) > 1:
+            # Confluence, append to the begining of queue
+            # but preserve the order of lifechoices in the queue as well        
+            # Standard procedure
+            iIns = 0
+            for conTup in lifechoices:
+                queue.insert(iIns,conTup)
+                iIns += 1
+            
+        elif len(cs) == 1:
+            # Non-Confluence, append to the end of the queue
+            # This is to handle special cases such as loops
+            if cs[0][0].extraVar == 0:
+                # Not assgned yet!
+                queue.append(cs[0])
+        else:
+            # Select the upstream node to go on
+            assert(len(lifechoices) == 1)
+            queue.append(lifechoices[0])
+        
+    return orderedEncounter
+            
+# --------------------------------------------------
+
+def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
     '''
     Will assign real ID's to the fake nodes via the Proportional Site Naming Algorithm
     1km is the mininum distance to generate unique 8 digit ID's. The network must represent the 
@@ -966,9 +1253,10 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
     net [Network]: Network to perform algorithm on.
     maxDownstreamID [SiteID]: The maximal ID for the network. (This is what the sinksite will be)
     sinkSite [Site]: [Optional!] The lowermost site in the network. Parent to all. If not provided, will be computed 
-
+    strict [Boolean]: [Optional!] Determines if alg will allow for already ID'd nodes in the network. If False, will only look for
+                        downwardsRefID's and skip if there is one
     '''
-    def alg(idBefore,totalAccum,leng,unitDist): 
+    def alg(idBefore,leng,unitDist = 1): 
         ''' 
         Internal core algorithm. 
         idBefore [SiteID]: What the ID was before
@@ -977,25 +1265,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
         unitDist [number]: How long before the value portion of an ID ticks down to -1
                             of the previous
         '''       
-        frac = leng / unitDist        
-        newValue = int(idBefore.value - numpy.floor(frac))        
-        if newValue == idBefore.value:
-            # Alter the extension            
-            unitExt = unitDist / 100
-            newExt = int(numpy.floor(leng / unitExt))
-            if not idBefore.extension is None:            
-                newExt += idBefore.extension
-            if newExt >= 99:
-                # You should have decremented the value, mathematically
-                newValue -= 1
-                return SiteID(idBefore.watershed,newValue)
-            if newExt == idBefore.extension:                
-                # Add one to the previous extension and try
-                return SiteID(idBefore.watershed,newValue,idBefore.extension + 1)             
-            else:
-                return SiteID(idBefore.watershed,newValue,newExt)
-        else:
-            return SiteID(idBefore.watershed,newValue)
+        return idBefore - (leng * unitDist)
     #---------------------------------------------------------------------
 
     # Use bitwise or to format final values
@@ -1006,22 +1276,17 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
     queue.append(starterTuple)
     # Step 1: Starting from the sink site, assign the site.assignedID field
     idNext = maxDownstreamID
-    distAccum = 0
+    
     while len(queue) >= 1:
         # Pop out the tuple
         t = queue.pop(0)
         u = t[0]
-        if u.assignedID >= 0:
-            # ID has already been assigned, must mean we just need to grab 
+        if u.assignedID >= 0 and u.downwardRefID is None:
+            # ID has already been assigned and we are not at the sink, must mean we just need to grab 
             # reference ID for this node
             u.downwardRefID = getLowestUpstreamNumber(net,u)
             continue
-
-        if t[2] is None:
-            # Assume we are at start
-            distAccum += 0
-        else:
-            distAccum += t[2].length
+        
         cs = u.connectedSites()
         lifechoices = [] # The upstream paths we may choose              
         for theCon in cs:
@@ -1042,8 +1307,8 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             for conTup in lifechoices:
                 queue.insert(iIns,conTup)
                 iIns += 1
-            refIDTup = (u,None,None)
-            if len(cs) > 2:
+            refIDTup = (u,None,"REF")    
+            if len(cs) > 2 and u.downwardRefID is None:
                 # 3 way branch; needs reference ID
                 queue.insert(iIns,refIDTup)
         elif len(cs) == 1:
@@ -1056,15 +1321,69 @@ def pSNA(net,maxDownstreamID,sinkSite = None):
             # INVALID NODE
             #raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
             pass
+
         if t[2] is None:
             u.assignedID = maxDownstreamID
             idNext = u.assignedID
         else:
-            newID = alg(idNext,distAccum,t[2].length,net.unitLength)        
-            u.assignedID = newID
-            u.downstreamID = idNext # The previous downstream ID is this
-            idNext = newID
+            if isinstance(t[2],Flow):
+                # We are not assigning a reference ID
+                newID = alg(idNext,t[2].length,net.unitLength)        
+                u.assignedID = newID
+                u.downstreamID = idNext # The previous downstream ID is this
+                idNext = newID
 
+    return idNext # Return the last ID generated
+
+def iSNA(net,rsc):
+    '''
+    Altered version of pSNA for running with real sites in network
+    '''
+    
+    # Use bitwise or to format final values
+    
+    queue = []  
+    
+    # Step 1: Starting from the sink site, assign the site.assignedID field
+    
+    distAccum = 0
+    i = 0
+    lastRef = None
+    while i in range(len(rsc)):
+        queue.append(rsc[i])
+        while len(queue) >= 1:
+            # Pop out the tuple
+            u = queue.pop(0)
+            
+            
+            # Basically go one layer out and then run pSNA from that point
+            # Find the flow that has no data
+            cs = u.connectedSites()
+            startSite = None
+            fl = None
+            for con in cs:
+                if con[1] == UPSTREAM_CON:
+                    if con[0].assignedID < 0 or con[0].assignedID is None:
+                        # We have a blank site. Start from here
+                        startSite = con[0]
+                        fl = con[2]
+                        break
+            if startSite is None:
+                print("INVALID START from {0}".format(u))
+                break
+            if u.downwardRefID is None and lastRef is None:
+                print("We are in trouble now")
+                raise RuntimeError("ERROR: Lost track of lowest reference ID upstream")
+            elif u.downwardRefID is None:
+
+                newSiteID = lastRef - fl.length
+                u.downwardRefID = lastRef
+            else:
+                newSiteID = u.downwardRefID - fl.length            
+            lastRef = pSNA(net,newSiteID,startSite,False)
+            
+
+        i += 1
 
 def getLowestUpstreamNumber(net,site):
     '''
@@ -1076,5 +1395,5 @@ def getLowestUpstreamNumber(net,site):
 
     Returns [SiteID]: Furthest upstream's SiteID
     '''
-    return navigateFurthestUpstream(net,site).assignedID
+    return net.navigateFurthestUpstream(site).assignedID
 

@@ -27,13 +27,16 @@ class TestPrecompiler(unittest.TestCase):
     def create_files(self, net):
         fileobject = open("Sites.txt", "w")
         for site in net.siteTable:
-            string = "%d, %f, %f, %s, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
-            fileobject.write(string)
+            
+            strr = "{0}, {1:f}, {2:f}, {3}, {4}\n".format(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
+            #string = "%d, %f, %f, %s, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
+            fileobject.write(strr)
         fileobject.close()
         fileobject = open("Flows.txt", "w")
         for flow in net.flowTable:
-            string = "%d, %d, %f, %f, %d \n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
-            fileobject.write(string)
+            strr = "{0}, {1}, {2:f}, {3:f}, {4}\n".format(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
+            #string = "%d, %d, %f, %f, %d \n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
+            fileobject.write(strr)
         fileobject.close()
 
     def verifySink(self,net):
@@ -111,3 +114,7 @@ class TestPrecompiler(unittest.TestCase):
         self.create_files(netTup[0])
         #create_visuals("LoopTest001-NHDSubset")
 
+class TestProject(unittest.TestCase):
+    def test_NoSitesAround(self):
+        # Plug in all stuff from main
+        pass

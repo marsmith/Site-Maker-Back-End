@@ -5,6 +5,12 @@ from plotly.offline import download_plotlyjs, plot
 import networkx as nx
 from Precompiler import *
 import webbrowser
+import test
+
+def visualize(net):
+    t = test.TestPrecompiler()
+    t.create_files(net)
+    create_visuals("Visualize-Net")
 
 def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
     L=len(Xn)
@@ -26,7 +32,7 @@ def create_visuals(test_name):
     temp_sites = f.read()
     temp_sites = temp_sites.split("\n")
     temp_sites.pop()
-    sites = []
+    sites = {}
     for site in temp_sites:
         site = site.split(", ")
         site[0] = int(site[0])
@@ -34,7 +40,7 @@ def create_visuals(test_name):
         site[2] = float(site[2])
         site[3] = str(site[3])
         site[4] = str(site[4])
-        sites.append(site)
+        sites[site[0]] = site
 
 
     f = open("Flows.txt", 'r')
@@ -82,10 +88,16 @@ def create_visuals(test_name):
     G.add_nodes_from(my_nodes)
     G.add_edges_from(my_edges)
 
-    Xn = [sites[k][1] for k in range(len(sites))]
-    Yn = [sites[k][2] for k in range(len(sites))]
-    labels = [sites[k][0] for k in range(len(sites))]
-    node_labels = ["ID: " + str(sites[k][0]) + "\nAssigned ID: " + str(sites[k][3]) + "\nDownward Ref ID:" + sites[k][4] for k in range(len(sites))]
+    sL = list(sites.values())
+
+    Xn = []
+    Yn = []
+    for k in range(len(sL)):
+        Xn.append(sL[k][1])
+        Yn.append(sL[k][2])
+
+    labels = [sL[k][0] for k in range(len(sL))]
+    node_labels = ["ID: " + str(sL[k][0]) + "\nAssigned ID: " + str(sL[k][3]) + "\nDownward Ref ID:" + sL[k][4] for k in range(len(sL))]
 
     node_trace = go.Scatter(
         x=Xn, y=Yn,
@@ -99,11 +111,18 @@ def create_visuals(test_name):
 
     Xe = []
     Ye = []
+    
+    Xdict = dict()
+    Ydict = dict()
+    for k in range(len(sL)):
+        Xdict[sL[k][0]] = sL[k][1]
+        Ydict[sL[k][0]] = sL[k][2]
+    
     for e in G.edges():
-        x0 = Xn[e[0]]
-        y0 = Yn[e[0]]
-        x1 = Xn[e[1]]
-        y1 = Yn[e[1]]
+        x0 = Xdict[e[0]]
+        y0 = Ydict[e[0]]
+        x1 = Xdict[e[1]]
+        y1 = Ydict[e[1]]
         Xe.append(x0)
         Xe.append(x1)
         Xe.append(None)
