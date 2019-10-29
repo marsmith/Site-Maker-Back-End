@@ -545,8 +545,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             #pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
-            iSNA(net,rsc)
             Visualizer.visualize(net)
+            iSNA(net,rsc)
+            
             return interpolateLine()
         elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
             # Scenario ---- (target flow) ---...---<>

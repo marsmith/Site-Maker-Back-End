@@ -107,14 +107,15 @@ class SiteID(object):
     '''
     
     def __init__(self,stringg):
-        self.value = int(stringg)
+        assert(len(stringg) >= 8)
+        self.value = int(stringg[0:8])
         self.id = int(stringg)
         self.watershed = 0
         self.fullID = int(int(self.watershed) + self.id)
 
         if len(stringg) > 8:
             self.extension = int(stringg[8:])
-            assert(self.extension <= 99 and self.extension > 0)
+            #assert(self.extension <= 99 and self.extension > 0)
             
             
         else:
@@ -206,7 +207,7 @@ class SiteID(object):
             return SiteID("{0}".format(self.fullID + other.fullID))          
         
         elif type(self) is SiteID:  
-            n = SiteID(str(self.value))
+            n = SiteID(str(self))
             n.watershed = self.watershed
             n.extension = self.extension          
             if int(other) != other and int(other) <= 1:                

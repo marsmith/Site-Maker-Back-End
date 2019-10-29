@@ -1,5 +1,6 @@
 from Precompiler import *
-
+DOWNSTREAM_CON = 1
+UPSTREAM_CON = 2
 
 def net_tracer(network):
     '''
@@ -14,7 +15,8 @@ def net_tracer(network):
                 realSiteQueue.append(site)
     print(real_sites_counter)
     while len(realSiteQueue) > 0:
-        queue = [realSiteQueue.pop(0)]
+        c = realSiteQueue.pop(0)
+        queue = [c]
         while (queue):
             curr = queue.pop()
             
@@ -55,7 +57,7 @@ def net_tracer(network):
                 
                 current_flow.downstreamSite.assignedID =  r + current_flow.length # Conf. ID
 
-                if curr == real_site:
+                if curr == c:
                     current_flow.downstreamSite.downwardRefID = r
 
                 #assign other upstream site
