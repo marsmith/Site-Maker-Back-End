@@ -6,14 +6,15 @@ def net_tracer(network):
     Returns a list of sites which are along the real->sink chain
     '''
     real_sites_counter = 0
+    realSiteQueue = []
     rsc = [] # real to sink chain
     for site in network.siteTable:
         if site.isReal:
                 real_sites_counter += 1
-                real_site = site
+                realSiteQueue.append(site)
     print(real_sites_counter)
-    if real_sites_counter == 1:
-        queue = [real_site]
+    while len(realSiteQueue) > 0:
+        queue = [realSiteQueue.pop(0)]
         while (queue):
             curr = queue.pop()
             

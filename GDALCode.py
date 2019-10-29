@@ -427,7 +427,6 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
     reals = net.getRealSites()
-    Visualizer.visualize(net)
     def find_with_no_sites(dataFolder, siteLayerName):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
@@ -543,15 +542,19 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
         if uIndex == -1 and (lIndex > -1 and fIndex > -1):
             # Scenario <>---...---- (target flow)
             # Run PSNA from the lower site
-            pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
-            interpolateLine()
+            #pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
+            rsc = net_tracer(net)    
+            # Next, run the normal algorithm but do not overwrite the calculated ones
+            iSNA(net,rsc)
+            Visualizer.visualize(net)
+            return interpolateLine()
         elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
             # Scenario ---- (target flow) ---...---<>
             # Run iSNA as if we had a single site
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
             iSNA(net,rsc)
-            interpolateLine()
+            return interpolateLine()
         else:
             # Scenario <>-- ... -- (target flow) --- ... ---<>
             # Only isolate a network from lIndex to uIndex
@@ -580,7 +583,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
                 rsc = net_tracer(net)    
                 # Next, run the normal algorithm but do not overwrite the calculated ones
                 iSNA(net,rsc)
-                interpolateLine()
+                return interpolateLine()
             else:
                 # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
                 # should work out, in theory!
