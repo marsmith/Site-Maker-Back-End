@@ -105,41 +105,22 @@ class SiteID(object):
     99876543
     True
     '''
-    def __init__(self,watershed = 100000000000,value = 99999999,extension = None):
-        '''
-        Constructs a new SiteID object
-
-        watershed [number]: Watershed (0 to 999999999999)
-        value [number]: 'value' portion (0 to 99999999)
-        extension [number]: Extension portion (0 to 99) (default=None)
-        '''
-        frm = str("%012d"%watershed)
-        frm2 = str("%08d"%value)
-        if extension is None:
-            # 8 digit general ID
-            self.fullID = int(frm + frm2)
-            self.id = int(frm2)
-            
-        else:
-            # 10 digit special case
-            frm3 = str("%02d"%extension)
-            self.fullID = int(frm + frm2 + frm3)
-            self.id = int(frm2 + frm3)
-        self.watershed = watershed
-        self.value = value
-        self.extension = extension
-
+    
     def __init__(self,stringg):
         self.value = int(stringg)
         self.id = int(stringg)
         self.watershed = 0
         self.fullID = int(int(self.watershed) + self.id)
+
         if len(stringg) > 8:
-            self.extension = stringg[8:]
-            assert(len(self.extension) == 2)
+            self.extension = int(stringg[8:])
+            assert(self.extension <= 99 and self.extension > 0)
+            
+            
         else:
             self.extension = None
     
+
     def __str__(self):
         '''
         Returns a string version of the SiteID. Preserves all digits!

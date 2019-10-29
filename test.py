@@ -11,7 +11,7 @@ human verification, but this ensures there are no minor bugs
 
 EPSILON = 0.01
 
-# class TestPrecompiler(unittest.TestCase):
+class TestPrecompiler(unittest.TestCase):
 #     def SiteLoader(self, filepath):
 #         jsonDict = open(filepath,"r").read()
 #         jsonDict = json.loads(jsonDict)
@@ -25,20 +25,20 @@ EPSILON = 0.01
 #             fileobject.write(string)
 #         fileobject.close()
 
-#     def create_files(self, net):
-#         fileobject = open("Sites.txt", "w")
-#         for site in net.siteTable:
+    def create_files(self, net):
+        fileobject = open("Sites.txt", "w")
+        for site in net.siteTable:
             
-#             strr = "{0}, {1:f}, {2:f}, {3}, {4}\n".format(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
-#             #string = "%d, %f, %f, %s, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
-#             fileobject.write(strr)
-#         fileobject.close()
-#         fileobject = open("Flows.txt", "w")
-#         for flow in net.flowTable:
-#             strr = "{0}, {1}, {2:f}, {3:f}, {4}\n".format(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
-#             #string = "%d, %d, %f, %f, %d \n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
-#             fileobject.write(strr)
-#         fileobject.close()
+            strr = "{0}, {1:f}, {2:f}, {3}, {4}\n".format(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
+            #string = "%d, %f, %f, %s, %s\n" %(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID))
+            fileobject.write(strr)
+        fileobject.close()
+        fileobject = open("Flows.txt", "w")
+        for flow in net.flowTable:
+            strr = "{0}, {1}, {2:f}, {3:f}, {4}\n".format(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
+            #string = "%d, %d, %f, %f, %d \n" %(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
+            fileobject.write(strr)
+        fileobject.close()
 
 #     def verifySink(self,net):
 #         sinks = calculateSink(net)
@@ -117,115 +117,105 @@ EPSILON = 0.01
 
 class TestProject(unittest.TestCase):
     def test_NoSitesAround1(self):
-        x = 75.5659463
+        x = -75.5659463
         y = 42.0752709
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
-        path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
-
-        sitesDataSource = ogr.Open(path_sites)
-        sl = sitesDataSource.GetLayer()
-        siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
-        # for site in sl:
-        #     ff = site.GetFieldAsString(siteNumber_index)[0:4]
-        #     if ff in ffDict.keys():
-        #         continue 
-        #     else:
-        #         ffDict[ff] = "It's a secret message Luigi"
+        print(newSite)
+        
 
     def test_NoSitesAround2(self):
-        x = 74.7391559
+        x = -74.7391559
         y = 43.9835929
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
         
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
     def test_OneSite1(self):
-        x = 73.6648475
+        x = -73.6648475
         y = 44.9726123
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
     def test_OneSite2(self):
-        x = 74.0457767
+        x = -74.0457767
         y = 43.7390809
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-    
+        print(newSite)
     def test_TwoOrMore1(self):
-        x = 75.2829214
+        x = -75.2829214
         y = 43.9238472
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
 
     def test_TwoOrMore2(self):
-        x = 74.0535743
+        x = -74.0535743
         y = 43.9645663
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
     def test_TwoOrMore3(self):
-        x = 74.7935758
+        x = -74.7935758
         y = 43.3986814
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
     def test_IsolatedNet1(self):
-        x = 76.3612354
+        x = -76.3612354
         y = 43.4810611
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
     def test_IsolatedNet2(self):
-        x = 74.7125772
+        x = -74.7125772
         y = 43.2162956
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-
+        print(newSite)
     def test_IsolatedNet3(self):
-        x = 74.4279059
+        x = -74.4279059
         y = 41.2865867
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-        siteLayerName = "SitesSnapped_Project"
+        folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+        siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
-    
+        print(newSite)
 
     

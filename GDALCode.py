@@ -81,7 +81,7 @@ def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_re
 
     
 def getFirstFourDigitFraming(folderPath,siteLayerName):
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
 
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
@@ -104,7 +104,7 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
     Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
     if it could not be found
     '''
-    path = str(folderPath) + "/" + str(polyLayerName) + "/" + str(polyLayerName) + ".shp"
+    path = str(folderPath) + "\\" + str(polyLayerName) + "\\" + str(polyLayerName) + ".shp"
     polyDataSource = ogr.Open(path)
     polyLayer = polyDataSource.GetLayer()
 
@@ -116,15 +116,15 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
 
 
 
-def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None):
+def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None,clFactor=2):
     # Create vars for return information
     starterFlow = None
 
      
     # Load Lines
-    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
+    path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
     
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -152,10 +152,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     if maxDist is None:
         # If max distance is not provided, then we can use the 
         # optimal solution
-        maxDist = determineOptimalSearchRadius(numberOfSites=numSites)
+        maxDist = determineOptimalSearchRadius(numberOfSites=numSites,clumpFactor=clFactor)
 
     
-    while len(interSites) < 1 and dist < maxDist:
+    while len(interSites) < clFactor and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
         # Intersect of BUFFER and SITES        
@@ -167,8 +167,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             if ingeom_site.Within(geomBuffer):
                 # This site is inside the buffer!
                 interSites.append((site,ingeom_site.Buffer(1)))
+
         sl.ResetReading()
-        if len(interSites) < 1:
+        if len(interSites) < clFactor:
             dist += 1000 # Expand by 2km
             print("Expanding to {0} m".format(dist))
     print("There are {0} sites inside the {1} km circle".format(len(interSites),dist / 1000))
@@ -421,12 +422,12 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 
-def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
-    [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None)
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
+    [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None,cf)
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
     reals = net.getRealSites()
-
+    Visualizer.visualize(net)
     def find_with_no_sites(dataFolder, siteLayerName):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
@@ -445,6 +446,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
             newHighest = str((int(before) + 1) * 10000 + 5000)
             newSiteID = SiteID(newHighest)
             return newSiteID
+
     def interpolateLine():
 
         '''
@@ -630,10 +632,19 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
     
 
 if __name__ == "__main__":
-    x = -73.6728187 # Three sites on one network
-    y = 44.4410200
+    #x = -73.6728187 # Three sites on one network
+    #y = 44.4410200
     #x = -74.7000840
     #y = 43.9997973
+    #x = -76.3612354 Isolated Net 1
+    #y = 43.4810611
+    #x = -75.5659463 #No sites Around 1
+   # y = 42.0752709
+    x = -75.5732857
+    y = 42.0854595
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    siteLayerName = "ProjectedSites"
+    lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-
-    
+    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3)
+    print(newSite)
