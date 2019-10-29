@@ -54,7 +54,24 @@ Flows which are Unadressable will not be able to be used to generate a new SiteI
 
 Length: To recalculate the total length of a network, you must call:
     <network>.recalculateTotalLength()
+    This must be calculated before calling one of the ID algorithms
 
 Unit Length: To change the unit length used, just change the following class var
-    <network>.unitLength
+    <network>.unitLength = 2 # Assigns UL to be 2
+    By default, this is set to 1
+
+ThisAndUpstream: *Stored in Flow; tells us from a particular flow how much distance of network
+                    is upstream of us + the length of the current flow. Useful for
+                    determining how much address space to assign. This must be calculated before 
+                    calling one of the ID algorithms
+    <network>.calculateUpstreamDistances()
+
+Strailer Numbers: *Stored in Flow; tells us the Strailer number for a particular Flow.
+    <network>.calcStrailer()
+    This must be calculated before calling one of the ID algorithms
+
+    For more details on what a Strailer Number is, use google, I am not the best source here.
+
+
+Sink: A sink is a Site which appears at the most downstream point in the Network.
 

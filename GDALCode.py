@@ -630,10 +630,10 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName):
     
 
 if __name__ == "__main__":
-    #x = -73.6728187 # Three sites on one network
-    #y = 44.4410200
-    x = -74.7000840
-    y = 43.9997973
+    x = -73.6728187 # Three sites on one network
+    y = 44.4410200
+    #x = -74.7000840
+    #y = 43.9997973
 
 
     
