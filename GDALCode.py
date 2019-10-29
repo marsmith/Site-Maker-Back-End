@@ -80,8 +80,8 @@ def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_re
     return geojson
 
     
-def getFirstFourDigitFraming(folderPath,siteLayerName):    
-    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+def getFirstFourDigitFraming(folderPath,siteLayerName):
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
@@ -104,7 +104,7 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
     Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
     if it could not be found
     '''
-    path = str(folderPath) + "\\" + str(polyLayerName) + "\\" + str(polyLayerName) + ".shp"
+    path = str(folderPath) + "/" + str(polyLayerName) + "/" + str(polyLayerName) + ".shp"
     polyDataSource = ogr.Open(path)
     polyLayer = polyDataSource.GetLayer()
 
@@ -122,9 +122,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
      
     # Load Lines
-    path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
+    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
     
-    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -635,6 +635,5 @@ if __name__ == "__main__":
     x = -74.7000840
     y = 43.9997973
 
-    print(determineNewSiteID(x,y,"C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR","ProjectedSites","NHDFlowline_Project_SplitFINAL"))
 
     
