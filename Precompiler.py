@@ -731,11 +731,13 @@ class Network(object):
 
         kaboodle = []
         for kit in self.siteTable:
-            if len(kit.flowsCon) == 1:
-                fds = kit.flowsCon[0].downstreamSite
-                if fds == kit:
-                    # This site is downstream and is the only downstream site left
-                    kaboodle.append(kit)
+            flag = True
+            for flow in kit.flowsCon:
+                if flow.upstreamSite == kit:
+                    flag = False
+            if flag:
+                # This site is downstream and is the only downstream site left
+                kaboodle.append(kit)
         
         return kaboodle 
 
@@ -763,6 +765,7 @@ class Network(object):
             u = queue.pop(0)
             if u.id == 279:
                 print()
+            
             cs = u.connectedSites()
             
             cntr = 0
@@ -805,7 +808,8 @@ class Network(object):
                 totalDown += totalUp
                 if dcon is None:
                     # Reached the end
-                    raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
+                    #raise RuntimeError("ERROR: calculateUpstreamDistances() invalid end")
+                    pass
                 else:
                     dcon.thisAndUpstream = totalDown 
 

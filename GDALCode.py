@@ -675,7 +675,7 @@ if __name__ == "__main__":
     # y = 44.3470288
     x = -76.3612354 
     y = 43.4810611
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
