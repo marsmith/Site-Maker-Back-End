@@ -1,6 +1,0 @@
-Make logic to account for order of the streams/naming
-    - Preference numbering tributaries first before continuing onto main river
-    
-Bunch of things in tight area
-
-Meeting with Doug on Tuesday
