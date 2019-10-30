@@ -81,7 +81,7 @@ def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_re
 
     
 def getFirstFourDigitFraming(folderPath,siteLayerName):
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
 
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
@@ -104,7 +104,7 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
     Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
     if it could not be found
     '''
-    path = str(folderPath) + "/" + str(polyLayerName) + "/" + str(polyLayerName) + ".shp"
+    path = str(folderPath) + "\\" + str(polyLayerName) + "\\" + str(polyLayerName) + ".shp"
     polyDataSource = ogr.Open(path)
     polyLayer = polyDataSource.GetLayer()
 
@@ -122,9 +122,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
      
     # Load Lines
-    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
+    path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
     
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -382,7 +382,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
-    removeUseless(netti,True)
+    starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it
     #netti.calculateUpstreamDistances()
       
     if JUPYTER:
@@ -465,7 +465,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             if con[1] == UPSTREAM_CON and con[0] != ups:
                 otherBranch = con[2]
 
-        upstreamID = startFlow.upstreamSite.id
+        upstreamID = startFlow.upstreamSite.assignedID
         downstreamID = None
         if otherBranch is None:
             # We are at a loop head or at a sink -> node point. Just use the upstream and downstream     
@@ -491,7 +491,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
 
     # -------- DIFFERENT REAL SITE CASES -------------------------
     #------------------------------------------------------------
-    Visualizer.visualize(net)
+    #Visualizer.visualize(net)
     if len(reals) == 1:
         sink = net.calculateSink()[0]
         if reals[0] == sink:
@@ -503,8 +503,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
         else:
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
-            iSNA(net,rsc)
-        interpolateLine()
+            assert(len(rsc) == 1)
+            iSNA(net,rsc[0])
+        return interpolateLine()
     
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
@@ -552,15 +553,18 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
             #Visualizer.visualize(net)
-            iSNA(net,rsc)
-            
+            rsc.sort(key=lambda chain: len(chain),reverse=False)
+            for chain in rsc:
+                iSNA(net,chain)            
             return interpolateLine()
         elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
             # Scenario ---- (target flow) ---...---<>
             # Run iSNA as if we had a single site
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
-            iSNA(net,rsc)
+            rsc.sort(key=lambda chain: len(chain),reverse=False)
+            for chain in rsc:
+                iSNA(net,chain)   
             return interpolateLine()
         else:
             # Scenario <>-- ... -- (target flow) --- ... ---<>
@@ -587,9 +591,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             if abs(UL) != UL:
                 # We have an error in SiteID's. The downstream ID is lower than the upstream ID
                 # Revert to case where we have one real upstream ID only
-                rsc = net_tracer(net)    
+                rsc = net_tracer(net,nettL[len(nettL) - 1])    # Force the origin of net_tracer to the upstream ID
                 # Next, run the normal algorithm but do not overwrite the calculated ones
-                iSNA(net,rsc)
+                iSNA(net,rsc[0])
                 return interpolateLine()
             else:
                 # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
@@ -649,12 +653,31 @@ if __name__ == "__main__":
     #x = -76.3612354 Isolated Net 1
     #y = 43.4810611
     #x = -75.5659463 #No sites Around 1
-   # y = 42.0752709
-    x = -75.5732857
-    y = 42.0854595
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    #y = 42.0752709
+    #x = -75.5732857
+    #y = 42.0854595
+
+
+    # Martys Points
+    #x = -74.0136461 # Chubb River, returned 0427389473
+    #y = 44.2623416
+    #x = -73.9204767 # Unnamed Trib #1 (upstream side), returned 0427399889
+    #y = 44.3030970 
+    #x =  -73.9205663 #Unnamed Trib #1 (downstream side) 0427399897
+    #y = 44.3038121
+    #x =  -73.9123839   # Unnamed Trib #2 (upstream side) Got stuck (see call stack on pause after 20 sec)
+    #y = 44.2371825
+    #x =  -73.9133175 # Unnamed Trib #2 (downstream side) Got stuck (see call stack on pause after 20 sec)
+    #y = 44.2363550
+    #x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
+    #y = 44.3492810
+    x =  -73.8689959# Sentinel Trib (upstream side) Returned 04274058
+    y = 44.3470288
+
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
     newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3)
+    
     print(newSite)

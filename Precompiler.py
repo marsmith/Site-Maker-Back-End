@@ -1111,7 +1111,7 @@ def peq(siteList,site):
 
 
 
-def removeUseless(net,addLengths=False):
+def removeUseless(net,addLengths=False,ucFlow=None):
     ''' 
     Will remove sites from the network with only two neighbors (1 up 1 down)
     Will then merge the two flows together into one flow, keeping the length
@@ -1125,6 +1125,7 @@ def removeUseless(net,addLengths=False):
     method will break the runtime if loops are present!
     '''
     i = 0
+    sf = ucFlow
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
 
@@ -1148,7 +1149,9 @@ def removeUseless(net,addLengths=False):
                 # coni0 is upstream of 'sit'
                 # coni1 is downstream
                 fl2Add = Flow(coni1[2].id,coni0[0],coni1[0],newLen,coni1[2].reachCode) 
-            
+            if not sf is None:
+                if sf.downstreamSite == sit or sf.upstreamSite == sit:
+                    sf = fl2Add
             net.removeInvolvedFlows(sit)
             coni0[0].removeInvolvedFlows(sit)
             coni1[0].removeInvolvedFlows(sit)
@@ -1162,7 +1165,7 @@ def removeUseless(net,addLengths=False):
         else:
             i += 1
 
-
+    return sf
             
 
 def testFlight(net,ucFlow,sinkSite = None):
@@ -1344,28 +1347,33 @@ def iSNA(net,rsc):
             cs = u.connectedSites()
             startSite = None
             fl = None
+            
             for con in cs:
                 if con[1] == UPSTREAM_CON:
                     if con[0].assignedID < 0 or con[0].assignedID is None:
-                        # We have a blank site. Start from here
+                        # We have a blank site. Start from here                        
                         startSite = con[0]
                         fl = con[2]
-                        break
+
+            
             if startSite is None:
                 print("INVALID START from {0}".format(u))
-                
+                break
             elif u.downwardRefID is None and lastRef is None:
-                print("We are in trouble now")
-                Visualizer.visualize(net)
-                raise RuntimeError("ERROR: Lost track of lowest reference ID upstream")
+                newSiteID = u.assignedID - fl.length
             elif u.downwardRefID is None:
 
                 newSiteID = lastRef - fl.length
                 u.downwardRefID = lastRef
             else:
-                newSiteID = u.downwardRefID - fl.length            
+                newSiteID = u.downwardRefID - fl.length
+                        
             lastRef = pSNA(net,newSiteID,startSite,False)
+            # Determin the lastRef
             
+
+            if u.downwardRefID is None:
+                u.downwardRefID = lastRef
 
         i += 1
 
