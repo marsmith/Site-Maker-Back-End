@@ -105,7 +105,7 @@ class SiteID(object):
     99876543
     True
     '''
-    
+
     def __init__(self,stringg):
         assert(len(stringg) >= 8)
         self.value = int(stringg[0:8])
@@ -210,7 +210,7 @@ class SiteID(object):
             n = SiteID(str(self))
             n.watershed = self.watershed
             n.extension = self.extension          
-            if int(other) != other and int(other) <= 1:                
+            if int(other) != other and int(other) < 1:                
                 e = int(other * 100)
                 
                 if not n.extension is None:
@@ -259,7 +259,7 @@ class SiteID(object):
         
         elif type(self) is SiteID:
             # Does the current site have extensions
-            n = SiteID(str(self.value))
+            n = SiteID(str(self))
             n.watershed = self.watershed
             n.extension = self.extension
             if int(other) != other and int(other) < 1:                 

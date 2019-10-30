@@ -81,7 +81,7 @@ def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_re
 
     
 def getFirstFourDigitFraming(folderPath,siteLayerName):
-    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
@@ -104,7 +104,7 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
     Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
     if it could not be found
     '''
-    path = str(folderPath) + "\\" + str(polyLayerName) + "\\" + str(polyLayerName) + ".shp"
+    path = str(folderPath) + "/" + str(polyLayerName) + "/" + str(polyLayerName) + ".shp"
     polyDataSource = ogr.Open(path)
     polyLayer = polyDataSource.GetLayer()
 
@@ -122,9 +122,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
      
     # Load Lines
-    path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
+    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
     
-    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -173,6 +173,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             dist += 1000 # Expand by 2km
             print("Expanding to {0} m".format(dist))
     print("There are {0} sites inside the {1} km circle".format(len(interSites),dist / 1000))
+
 
 
     
@@ -286,8 +287,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                             
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
-                        
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                        print(sid)
                         print("made unique Site {0}".format(sid))
                         s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0,isl=True)
                         s.assignedID = sid
@@ -308,6 +309,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                        print(sid)
                         print("made unique Site {0}".format(sid))
                         s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0,isl=True)
                         sitesStore[s_geom] = s
@@ -343,6 +345,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                         upSite = sitesStore[k]
                 if not foundExisting:
                     s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0)
+
                     sitesStore[upPt.Buffer(1)] = s
                     upSite = s
                     siteCounter += 1
@@ -356,6 +359,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                         downSite = sitesStore[k]
                 if not foundExisting:
                     s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0)
+
                     downSite = s
                     sitesStore[downPt.Buffer(1)] = s
                     siteCounter += 1
@@ -417,6 +421,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     # Visualize the network
    
+    Visualizer.visualize(netti)
     
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
@@ -442,7 +447,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
                     break
                 else:
                     before = digits            
-            newHighest = str((int(before) + 1) * 10000 + 5000)
+            newHighest = (int(before) + 1) * 10000 + 5000
+            newHighest = "%08d" %(newHighest)
             newSiteID = SiteID(newHighest)
             return newSiteID
 
@@ -486,6 +492,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
 
     # -------- DIFFERENT REAL SITE CASES -------------------------
     #------------------------------------------------------------
+    Visualizer.visualize(net)
     if len(reals) == 1:
         sink = net.calculateSink()[0]
         if reals[0] == sink:
@@ -510,7 +517,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
 
         if r <= UC_BUFFER_MAX:
             # Radius recommended does not exceed upper bounds! Execute again
-            [net,ucPoint,startingLine,startFlow,siteLayer,interSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,r)    
+            [net,ucPoint,startingLine,startFlow,siteLayer,interSites, length] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,r)    
             net.calculateUpstreamDistances()    
             net.calcStraihler()    
             reals = net.getRealSites()
@@ -524,7 +531,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
         
         orderedList = testFlight(net,startFlow)
         
-        fIndex = -1
+        fIndex = -1 #index where the starter flow is
         lIndex = -1 # Index of lower site (a site below the target flow)
         uIndex = -1 # Index of upper site (a site above the target flow)
         for i in range(len(orderedList)):
@@ -646,7 +653,7 @@ if __name__ == "__main__":
    # y = 42.0752709
     x = -75.5732857
     y = 42.0854595
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
 

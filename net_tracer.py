@@ -46,7 +46,8 @@ def net_tracer(network):
                 dsDest.assignedID = curr.assignedID + current_flow.length
                 break
 
-
+            if current_flow.downstreamSite.id == 24:
+                print("hi")
             if current_flow < other_flow:
                 # current <= other
                 if (curr.assignedID is -1 or curr.assignedID is None ):
