@@ -272,14 +272,18 @@ class SiteID(object):
                         n.extension = 100 - abs(n.extension)
                         n.value -= 1 # Increment the value up by one  
                 else:
-                    n.extension = e
-                    n.value -= 1                 
+                    if e >= 100:
+                        n.extension = None
+                        n.value -= 1 
+                    else:
+                        n.extension = e
+                        n.value -= 1                 
             else:
                 n.value -= int(other)
                 # We do not need to add an extension
                 if not n.extension is None:
-                    n.extension = None  
-            
+                    n.extension = None
+
             if not n.extension is None:
                 n.id = int(str(n.value) + str(n.extension)) 
             else:
@@ -1277,8 +1281,6 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
         # Pop out the tuple
         t = queue.pop(0)
         u = t[0]
-        if u.id == 233:
-            print()
         if u.assignedID >= 0 and u.downwardRefID is None:
             # ID has already been assigned and we are not at the sink, must mean we just need to grab 
             # reference ID for this node
