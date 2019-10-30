@@ -10,7 +10,7 @@ human verification, but this ensures there are no minor bugs
 '''
 
 EPSILON = 0.01
-
+PATH = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
 class TestPrecompiler(unittest.TestCase):
 #     def SiteLoader(self, filepath):
 #         jsonDict = open(filepath,"r").read()
@@ -114,31 +114,29 @@ class TestPrecompiler(unittest.TestCase):
 #         self.verifyAllNumbered(netTup[0])
 #         self.create_files(netTup[0])
 #         #create_visuals("LoopTest001-NHDSubset")
+def checkIfSiteExists(folderPath,siteLayerName,siteID):
+	path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
+	sitesDataSource = ogr.Open(path_sites)
+	sl = sitesDataSource.GetLayer()
+	siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+	ffDict = {} # Stores the first four
+	
+	sitStr = str(siteID)
+	for site in sl:
+		ff = site.GetFieldAsString(siteNumber_index)
+		if ff == sitStr:
+			return True
+	return False
 class TestProject(unittest.TestCase):
-    def checkIfSiteExists(self,folderPath,siteLayerName,siteID):
-        path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
-
-        sitesDataSource = ogr.Open(path_sites)
-        sl = sitesDataSource.GetLayer()
-        siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
-        ffDict = {} # Stores the first four
-        
-        sitStr = str(siteID)
-        for site in sl:
-            ff = site.GetFieldAsString(siteNumber_index)
-            if ff == sitStr:
-                return True
-        return False
-
-
+    
     def test_NoSitesAround1(self):
         x = -75.5738275
         y = 42.084898
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
 
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
@@ -149,11 +147,11 @@ class TestProject(unittest.TestCase):
         x = -74.7391559
         y = 43.9835929
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
         
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -163,11 +161,11 @@ class TestProject(unittest.TestCase):
         x = -73.6648475
         y = 44.9726123
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -176,11 +174,11 @@ class TestProject(unittest.TestCase):
         x = -74.0457767
         y = 43.7390809
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -189,11 +187,11 @@ class TestProject(unittest.TestCase):
         x = -75.2829214
         y = 43.9238472
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -202,11 +200,11 @@ class TestProject(unittest.TestCase):
         x = -74.0535743
         y = 43.9645663
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -215,11 +213,11 @@ class TestProject(unittest.TestCase):
         x = -74.7935758
         y = 43.3986814
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -228,11 +226,11 @@ class TestProject(unittest.TestCase):
         x = -76.3612354  #04249020
         y = 43.4810611
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -241,11 +239,11 @@ class TestProject(unittest.TestCase):
         x = -74.7125772
         y = 43.2162956
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -254,11 +252,11 @@ class TestProject(unittest.TestCase):
         x = -74.4279059
         y = 41.2865867
 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,True)
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
@@ -266,7 +264,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite1(self):
         x = -74.0136461 # Chubb River, returned 0427389473
         y = 44.2623416
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
@@ -279,7 +277,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite2(self):
         x = -73.9204767 # Unnamed Trib #1 (upstream side), returned 0427399889
         y = 44.3030970 
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
@@ -291,7 +289,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite3(self):
         x =  -73.9205663 #Unnamed Trib #1 (downstream side) 0427399897
         y = 44.3038121
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
@@ -303,7 +301,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite4(self):
         x =  -73.9123839   # Unnamed Trib #2 (upstream side) 04273842
         y = 44.2371825
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
@@ -315,7 +313,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite5(self):
         x =  -73.9133175 # Unnamed Trib #2 (downstream side) 04273840
         y = 44.2363550
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
@@ -327,7 +325,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite6(self):
         x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
         y = 44.3492810
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
@@ -339,7 +337,7 @@ class TestProject(unittest.TestCase):
     def test_MartySite7(self):
         x =  -73.8689959 # Sentinel Trib (upstream side) Returned 04274058
         y = 44.3470288
-        folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+        folderPath = PATH
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
 

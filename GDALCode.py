@@ -4,13 +4,12 @@ from osgeo import osr
 from osgeo import gdal_array
 from osgeo import gdalconst
 import os
-import json
-import folium
+
 from Precompiler import *
 from net_tracer import net_tracer
 
 # Program Constants
-JUPYTER = False
+
 UC_BUFFER_MIN = 1000 # 1 km
 UC_BUFFER_MAX = 10000 # 10 km
 NY_STATE_AREA = 141299400000 # m^2
@@ -28,58 +27,6 @@ def determineOptimalSearchRadius(stateArea = NY_STATE_AREA,numberOfSites=None,cl
     r = numpy.sqrt((1 / rat) / numpy.pi) * clumpFactor
     return r
 
-def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_ref = None,outPath=None):
-    '''
-    Matry's Function! Converts Geometry to GeoJSON
-    '''
-    if not simplify_tolerance is None:
-        in_geom = in_geom.Simplify(simplify_tolerance)
-    transform = osr.CoordinateTransformation(in_ref, out_ref)      
-    
-    #don't want to affect original geometry
-    transform_geom = in_geom.Clone()      
-
-    #trasnsform geometry from whatever the local projection is to wgs84
-    if in_ref is None or out_ref is None:
-        pass
-    else:
-        transform_geom.Transform(transform)
-        
-    json_text = transform_geom.ExportToJson()
-    #add some attributes
-
-    geom_json = json.loads(json_text)
-    #get area in local units
-
-    area = in_geom.GetArea()
-    
-    geojson_dict = {
-
-        "type": "Feature",
-
-        "geometry": geom_json,
-
-        "properties": {
-
-            "area": area
-
-        }
-
-    }
-    geojson = json.dumps(geojson_dict)
-    if not outPath is None:
-
-        f = open('./' + name + '.geojson','w')
-
-        f.write(geojson)
-
-        f.close()
-
-        print('Exported geojson:', name)       
-
-    return geojson
-
-    
 def getFirstFourDigitFraming(folderPath,siteLayerName):
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
@@ -94,27 +41,6 @@ def getFirstFourDigitFraming(folderPath,siteLayerName):
         else:
             ffDict[ff] = "It's a secret message Luigi"
     return list(ffDict.keys())
-
-def getWBPolygon(folderPath,polyLayerName,inputLine):
-    '''
-    Will import the WBNHDPolygon and see if the input line is within it
-    PRECONDITION: Spatial Reference of the polyLayer and the input line
-    must be the same!
-
-    Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
-    if it could not be found
-    '''
-    path = str(folderPath) + "/" + str(polyLayerName) + "/" + str(polyLayerName) + ".shp"
-    polyDataSource = ogr.Open(path)
-    polyLayer = polyDataSource.GetLayer()
-
-    for poly in polyLayer:
-        if inputLine.GetGeometryRef().Within(poly):
-            return poly
-    return None
-
-
-
 
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None,clFactor=2):
     # Create vars for return information
@@ -171,9 +97,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         sl.ResetReading()
         if len(interSites) < clFactor:
             dist += 1000 # Expand by 2km
-            print("Expanding to {0} m".format(dist))
-    print("There are {0} sites inside the {1} km circle".format(len(interSites),dist / 1000))
-
+            
 
 
     
@@ -226,12 +150,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         e = (line.GetGeometryRef().Buffer(INITIAL_UCLICK_SWEEP),False)
         lBufferStore[line] = e[1] # Original Line, Buffered Geometry 
         if ucBuff.Intersects(e[0]):
-            startingLine = line
-            print("I will start at line index {0}".format(startingLine))
+            startingLine = line            
         i += 1
         
-    if startingLine is None:
-        print("ERROR: USER_CLICK does not intersect any existing lines")
+    if startingLine is None:        
         return
     
     queue = [] # Stores keys
@@ -242,16 +164,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         # Visualize the lines in stages       
         e = queue.pop(0) # This will be the line
         lL.append(e)
-        if JUPYTER:
-            m = folium.Map(location=[y,x],zoom_start=13)
-            
-            for lentry in lL:
-            
-                geoJ = geomToGeoJSON(lentry.GetGeometryRef(),"",10,linesLayer.GetSpatialRef(),oRef)
-                folium.GeoJson(data=geoJ).add_to(m)    
         
-            display(m)
-            
         if lBufferStore[e] == True:
             # We have already visited this
             continue
@@ -383,50 +296,13 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
     starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it
-    #netti.calculateUpstreamDistances()
-      
-    if JUPYTER:
-    # Display all in folium GeoJSON
-        m = folium.Map(location=[y,x],zoom_start=13)
-        folium.Marker([y,x],popup='<b>USER_CLICK</b>').add_to(m)
-        
-        for i in range(len(interSites)):
-            sentry = interSites[i]
-            geoJ = geomToGeoJSON(sentry[1],"",10,sl.GetSpatialRef(),oRef)
-            
-            print(geoJ)
-            
-            folium.GeoJson(data=geoJ).add_to(m)  
-            p = sentry[0].GetGeometryRef()
-            
-            x = p.GetX()
-            y = p.GetY()
-            [rla,rlong,z] = r_ctran.TransformPoint(x,y)
-            
-            print("Putting marker at: {0}, {1}".format(rla,rlong))
-            
-            folium.Marker([rlong,rla],popup='<b>#SITE#</b>').add_to(m)
-        # Draw all the interLines onto the folium map
-        
-        for lentry in lL:
-            
-            geoJ = geomToGeoJSON(lentry.GetGeometryRef(),"",10,linesLayer.GetSpatialRef(),oRef)
-            folium.GeoJson(data=geoJ).add_to(m)    
-        
-        display(m)
-    
-    
-    # Do unit length calculations based on real existing sites and network length
-    
-    
-    # Visualize the network
     
     
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
     
 
-def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False):
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None,cf)
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
@@ -505,6 +381,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             # Next, run the normal algorithm but do not overwrite the calculated ones
             assert(len(rsc) == 1)
             iSNA(net,rsc[0])
+            if VIS:
+                Visualizer.visualize(net)
         return interpolateLine()
     
     elif len(reals) < 1:
@@ -524,6 +402,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
 
         if len(reals) == 0:
             id = find_with_no_sites(dataFolder,siteLayerName)
+            if VIS:
+                Visualizer.visualize(net)
             return id
     else:
         # We must conform to the SiteTheory Standard for multiple sites
@@ -555,7 +435,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             #Visualizer.visualize(net)
             rsc.sort(key=lambda chain: len(chain),reverse=False)
             for chain in rsc:
-                iSNA(net,chain)            
+                iSNA(net,chain) 
+            if VIS:
+                Visualizer.visualize(net)           
             return interpolateLine()
         elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
             # Scenario ---- (target flow) ---...---<>
@@ -565,6 +447,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             rsc.sort(key=lambda chain: len(chain),reverse=False)
             for chain in rsc:
                 iSNA(net,chain)   
+            if VIS:
+                Visualizer.visualize(net)
             return interpolateLine()
         else:
             # Scenario <>-- ... -- (target flow) --- ... ---<>
@@ -594,6 +478,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
                 rsc = net_tracer(net,nettL[len(nettL) - 1])    # Force the origin of net_tracer to the upstream ID
                 # Next, run the normal algorithm but do not overwrite the calculated ones
                 iSNA(net,rsc[0])
+                if VIS:
+                    Visualizer.visualize(net)
                 return interpolateLine()
             else:
                 # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
@@ -640,11 +526,12 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
                 lengthP = orderedList[fIndex].length * ucToLower_Frac
                 
                 YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
-                
+                if VIS:
+                    Visualizer.visualize(net)
                 return YAY
 
     
-#if __name__ == "__main__":
+if __name__ == "__main__":
     #x = -73.6728187 # Three sites on one network
     #y = 44.4410200
     #x = -74.7000840
@@ -658,8 +545,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
 
 
     # Martys Points
-    #x = -74.0136461 # Chubb River, returned 0427389473
-    #y = 44.2623416
+    # x = -74.0136461 # Chubb River, returned 0427389473
+    # y = 44.2623416
     #x = -73.9204767 # Unnamed Trib #1 (upstream side), returned 0427399889
     #y = 44.3030970 
     #x =  -73.9205663 #Unnamed Trib #1 (downstream side) 0427399897
@@ -674,13 +561,14 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
     #y = 44.3470288
     #x = -76.3612354  #04249020
     #y = 43.4810611
-
+    x = -74.7935758
+    y = 43.3986814
     # x = -75.5738275
     # y = 42.084898
-    # folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    # siteLayerName = "ProjectedSites"
-    # lineLayerName = "NHDFlowline_Project_SplitFINAL"
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    siteLayerName = "ProjectedSites"
+    lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-    # newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3)
+    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,True)
     
-    # print(newSite)
+    print(newSite)
