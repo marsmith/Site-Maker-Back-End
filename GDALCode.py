@@ -81,7 +81,7 @@ def geomToGeoJSON(in_geom, name, simplify_tolerance= None, in_ref = None, out_re
 
     
 def getFirstFourDigitFraming(folderPath,siteLayerName):
-    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
@@ -104,7 +104,7 @@ def getWBPolygon(folderPath,polyLayerName,inputLine):
     Returns [Polygon]: The polygon which inputLine's geometry is within. Returns None
     if it could not be found
     '''
-    path = str(folderPath) + "\\" + str(polyLayerName) + "\\" + str(polyLayerName) + ".shp"
+    path = str(folderPath) + "/" + str(polyLayerName) + "/" + str(polyLayerName) + ".shp"
     polyDataSource = ogr.Open(path)
     polyLayer = polyDataSource.GetLayer()
 
@@ -122,9 +122,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
      
     # Load Lines
-    path = str(folderPath) + "\\" + str(lineLayerName) + "\\" + str(lineLayerName) + ".shp"
+    path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
     
-    path_sites = str(folderPath) + "\\" + str(siteLayerName) + "\\" + str(siteLayerName) + ".shp"
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
     # Buffer around userClick
     
     oRef = osr.SpatialReference()
@@ -665,16 +665,16 @@ if __name__ == "__main__":
     #y = 44.3030970 
     #x =  -73.9205663 #Unnamed Trib #1 (downstream side) 0427399897
     #y = 44.3038121
-    #x =  -73.9123839   # Unnamed Trib #2 (upstream side) Got stuck (see call stack on pause after 20 sec)
-    #y = 44.2371825
+    x =  -73.9123839   # Unnamed Trib #2 (upstream side) Got stuck (see call stack on pause after 20 sec)
+    y = 44.2371825
     #x =  -73.9133175 # Unnamed Trib #2 (downstream side) Got stuck (see call stack on pause after 20 sec)
     #y = 44.2363550
     #x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
     #y = 44.3492810
-    x =  -73.8689959# Sentinel Trib (upstream side) Returned 04274058
-    y = 44.3470288
+    # x =  -73.8689959# Sentinel Trib (upstream side) Returned 04274058
+    # y = 44.3470288
 
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
 

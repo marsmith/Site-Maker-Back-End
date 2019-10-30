@@ -749,11 +749,15 @@ class Network(object):
         faucets = self.calculateFaucets()
         
         # Written by Nicole and Marcus
+        counter = 0
         queue = list(faucets)
         while len(queue) >= 1:
-            
-
+            counter +=1
+            if counter >1000:
+                print()
             u = queue.pop(0)
+            if u.id == 279:
+                print()
             cs = u.connectedSites()
             
             cntr = 0
@@ -872,9 +876,15 @@ class Network(object):
         '''
         faucets = []
         for s in self.siteTable:
-            if len(s.flowsCon) == 1 and s.flowsCon[0].upstreamSite == s:
-                # s is a faucet (the most upstream on a particular branch)
+            flag = True
+            for flow in s.flowsCon:
+                if flow.upstreamSite != s:
+                    flag = False
+            if flag == True:
                 faucets.append(s)
+            # if len(s.flowsCon) == 1 and s.flowsCon[0].upstreamSite == s:
+            #     # s is a faucet (the most upstream on a particular branch)
+            #     faucets.append(s)
         return faucets
     def positionalEqualityList(self):
         '''
@@ -1267,6 +1277,8 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
         # Pop out the tuple
         t = queue.pop(0)
         u = t[0]
+        if u.id == 233:
+            print()
         if u.assignedID >= 0 and u.downwardRefID is None:
             # ID has already been assigned and we are not at the sink, must mean we just need to grab 
             # reference ID for this node
@@ -1291,17 +1303,23 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             # Standard procedure
             iIns = 0
             for conTup in lifechoices:
+                if conTup in queue:
+                    queue.remove(conTup)
                 queue.insert(iIns,conTup)
                 iIns += 1
             refIDTup = (u,None,"REF")    
             if len(cs) > 2 and u.downwardRefID is None:
                 # 3 way branch; needs reference ID
+                if refIDTup in queue:
+                    queue.remove(refIDTup)
                 queue.insert(iIns,refIDTup)
         elif len(cs) == 1:
             # Non-Confluence, append to the end of the queue
             # This is to handle special cases such as loops
             if cs[0][0].assignedID < 0:
                 # Not assgned yet!
+                if cs[0] in queue:
+                    queue.remove(cs[0])
                 queue.append(cs[0])
         else:
             # INVALID NODE
