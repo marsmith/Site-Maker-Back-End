@@ -644,8 +644,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
                 return YAY
 
     
-
-if __name__ == "__main__":
+#if __name__ == "__main__":
     #x = -73.6728187 # Three sites on one network
     #y = 44.4410200
     #x = -74.7000840
@@ -676,12 +675,12 @@ if __name__ == "__main__":
     #x = -76.3612354  #04249020
     #y = 43.4810611
 
-    x = -75.5738275
-    y = 42.084898
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
-    siteLayerName = "ProjectedSites"
-    lineLayerName = "NHDFlowline_Project_SplitFINAL"
+    # x = -75.5738275
+    # y = 42.084898
+    # folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    # siteLayerName = "ProjectedSites"
+    # lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
-    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3)
+    # newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3)
     
-    print(newSite)
+    # print(newSite)
