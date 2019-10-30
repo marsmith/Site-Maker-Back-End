@@ -1303,23 +1303,17 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             # Standard procedure
             iIns = 0
             for conTup in lifechoices:
-                if conTup in queue:
-                    queue.remove(conTup)
                 queue.insert(iIns,conTup)
                 iIns += 1
             refIDTup = (u,None,"REF")    
             if len(cs) > 2 and u.downwardRefID is None:
                 # 3 way branch; needs reference ID
-                if refIDTup in queue:
-                    queue.remove(refIDTup)
                 queue.insert(iIns,refIDTup)
         elif len(cs) == 1:
             # Non-Confluence, append to the end of the queue
             # This is to handle special cases such as loops
             if cs[0][0].assignedID < 0:
                 # Not assgned yet!
-                if cs[0] in queue:
-                    queue.remove(cs[0])
                 queue.append(cs[0])
         else:
             # INVALID NODE
