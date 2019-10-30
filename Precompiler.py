@@ -1353,9 +1353,10 @@ def iSNA(net,rsc):
                         break
             if startSite is None:
                 print("INVALID START from {0}".format(u))
-                break
-            if u.downwardRefID is None and lastRef is None:
+                
+            elif u.downwardRefID is None and lastRef is None:
                 print("We are in trouble now")
+                Visualizer.visualize(net)
                 raise RuntimeError("ERROR: Lost track of lowest reference ID upstream")
             elif u.downwardRefID is None:
 

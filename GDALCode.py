@@ -420,7 +420,6 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
     # Visualize the network
-   
     Visualizer.visualize(netti)
     
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
@@ -552,7 +551,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2):
             #pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
-            Visualizer.visualize(net)
+            #Visualizer.visualize(net)
             iSNA(net,rsc)
             
             return interpolateLine()
