@@ -671,11 +671,14 @@ if __name__ == "__main__":
     #y = 44.2363550
     #x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
     #y = 44.3492810
-    # x =  -73.8689959# Sentinel Trib (upstream side) Returned 04274058
-    # y = 44.3470288
-    x = -76.3612354 
-    y = 43.4810611
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    #x =  -73.8689959 # Sentinel Trib (upstream side) Returned 04274058
+    #y = 44.3470288
+    #x = -76.3612354  #04249020
+    #y = 43.4810611
+
+    x = -75.5738275
+    y = 42.084898
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
 

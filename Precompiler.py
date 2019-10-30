@@ -379,7 +379,17 @@ class Site(object):
         Returns [bool] : True if self is greater than to other. False otherwise.
         '''
         return self.id > other.id
-    
+    def isConfluence(self):
+        cs = self.connectedSites()
+        numUp = 0
+        numDown = 0
+        for e in cs:
+            if e[1] == UPSTREAM_CON:
+                numUp += 1
+            elif e[1] == DOWNSTREAM_CON:
+                numDown += 1
+        return numUp != 1 and numDown != 1
+        
     def calculatePendingUpstream(self):
         '''
         Calculates the number of pending upstreams a site has

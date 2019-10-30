@@ -117,8 +117,8 @@ class TestPrecompiler(unittest.TestCase):
 
 class TestProject(unittest.TestCase):
     def test_NoSitesAround1(self):
-        x = -75.5659463
-        y = 42.0752709
+        x = -75.5738275
+        y = 42.084898
         folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
         siteLayerName = "ProjectedSites"
         lineLayerName = "NHDFlowline_Project_SplitFINAL"
@@ -188,7 +188,7 @@ class TestProject(unittest.TestCase):
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
     def test_IsolatedNet1(self):
-        x = -76.3612354
+        x = -76.3612354  #04249020
         y = 43.4810611
 
         folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"

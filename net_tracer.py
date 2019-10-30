@@ -52,13 +52,12 @@ def net_tracer(network,forcedOrigin=None):
             if not (current_flow.downstreamSite.assignedID is -1 or current_flow.downstreamSite.assignedID is None ):
                     # Already assigned! Do not do anything more
                 continue # So we dont add to the queue again
-            if dsDest == network.calculateSink()[0]:
+            if dsDest == network.calculateSink()[0] and not dsDest.isConfluence():
                 # The next site is a sink downstream; apply special rule
                 dsDest.assignedID = curr.assignedID + current_flow.length
                 break
 
-            if current_flow.downstreamSite.id == 24:
-                print("hi")
+            
             if not other_flow is None:
 
                 if current_flow < other_flow:
