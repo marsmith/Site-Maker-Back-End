@@ -131,7 +131,8 @@ class SiteID(object):
         if self.extension is None:
             return str("%08d"%self.id)
         else:
-            return str("%010d"%self.id)
+            
+            return str("%08d%02d" %(self.value,self.extension))
     def __lt__(self,other):
         '''
         Performs a '<' comparison between the calling SiteID and other

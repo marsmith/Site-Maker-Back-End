@@ -420,7 +420,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
     # Visualize the network
-    Visualizer.visualize(netti)
+    
     
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
@@ -665,16 +665,17 @@ if __name__ == "__main__":
     #y = 44.3030970 
     #x =  -73.9205663 #Unnamed Trib #1 (downstream side) 0427399897
     #y = 44.3038121
-    x =  -73.9123839   # Unnamed Trib #2 (upstream side) Got stuck (see call stack on pause after 20 sec)
-    y = 44.2371825
-    #x =  -73.9133175 # Unnamed Trib #2 (downstream side) Got stuck (see call stack on pause after 20 sec)
+    #x =  -73.9123839   # Unnamed Trib #2 (upstream side) 04273842
+    #y = 44.2371825
+    #x =  -73.9133175 # Unnamed Trib #2 (downstream side) 04273840
     #y = 44.2363550
     #x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
     #y = 44.3492810
     # x =  -73.8689959# Sentinel Trib (upstream side) Returned 04274058
     # y = 44.3470288
-
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    x = -76.3612354 
+    y = 43.4810611
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
 
