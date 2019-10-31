@@ -7,10 +7,22 @@ from Precompiler import *
 import webbrowser
 import test
 
-def visualize(net):
-    t = test.TestPrecompiler()
-    t.create_files(net)
-    create_visuals("Visualize-Net")
+def visualize(net, x = -1.0, y = -1.0, id = -1):
+    create_files(net)
+    create_visuals("Visualize-Net", x, y, id)
+
+def create_files(net):
+    fileobject = open("Sites.txt", "w")
+    for site in net.siteTable:
+        
+        strr = "{0}, {1:f}, {2:f}, {3}, {4}, {5}\n".format(site.id, site.latLong.srcLat, site.latLong.srcLong, str(site.assignedID), str(site.downwardRefID), str(site.isReal))
+        fileobject.write(strr)
+    fileobject.close()
+    fileobject = open("Flows.txt", "w")
+    for flow in net.flowTable:
+        strr = "{0}, {1}, {2:f}, {3:f}, {4}\n".format(flow.upstreamSite.id, flow.downstreamSite.id, flow.length, flow.thisAndUpstream, flow.straihler)
+        fileobject.write(strr)
+    fileobject.close()
 
 def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
     L=len(Xn)
@@ -27,7 +39,7 @@ def make_annotations(Xn, Yn, labels, font_size=14, font_color='rgb(10,10,10)'):
                           )
     return annotations  
 
-def create_visuals(test_name):
+def create_visuals(test_name, ux, uy, id):
     f = open("Sites.txt", 'r')
     temp_sites = f.read()
     temp_sites = temp_sites.split("\n")
@@ -40,6 +52,7 @@ def create_visuals(test_name):
         site[2] = float(site[2])
         site[3] = str(site[3])
         site[4] = str(site[4])
+        site[5] = str(site[5])
         sites[site[0]] = site
 
 
@@ -57,6 +70,38 @@ def create_visuals(test_name):
         flow[4] = int(flow[4])
         flows.append(flow)
 
+
+    if ux != -1 and uy != -1 and id != -1:
+        ux = [ux]
+        uy = [uy]
+        user_click_trace = go.Scatter(
+        x=ux, y=uy,
+        mode='markers',
+        text = [id],
+        hoverinfo='text',
+        marker=dict(
+            color = 'green',
+            size=10,
+            line_width=2))
+
+    real_sites = []
+    for site in sites.keys():
+        if sites[site][5] == "True":
+            real_sites.append([sites[site][1], sites[site][2]])
+    Xr = [real_sites[k][0] for k in range(len(real_sites))]
+    Yr = [real_sites[k][1] for k in range(len(real_sites))]
+    print(Xr)
+    realSites_trace = go.Scatter(
+        x=Xr, y=Yr,
+        mode='markers',
+        hoverinfo= 'none',
+        marker=dict(
+            color = 'red',
+            size=10,
+            line_width=2))
+
+
+
     midpoints = []
     for flow in flows:
         x0 = sites[flow[0]][1]
@@ -67,7 +112,6 @@ def create_visuals(test_name):
         new_x = (x0 + x1) / 2
         new_y = (y0 + y1) / 2
         midpoints.append([temp_length, new_x, new_y])
-
     Xm = [midpoints[k][1] for k in range(len(midpoints))]
     Ym = [midpoints[k][2] for k in range(len(midpoints))]
     flow_lengths = ["This: " + str(flows[k][2]) + "\t Upstream: " + str(flows[k][3]) + "\t straihler: " + str(flows[k][4])for k in range(len(flows))]
@@ -135,12 +179,16 @@ def create_visuals(test_name):
         line=dict(width=0.5, color='#888'),
         mode='lines')
 
+
+
     axis=dict(showline=False, # hide axis line, grid, ticklabels and  title
             zeroline=False,
             showgrid=False,
             showticklabels=False,
             title='' 
             )
+
+
     layout=dict(title= test_name,  
                 font= dict(family='Balto'),
                 width=1500,
@@ -153,9 +201,14 @@ def create_visuals(test_name):
         plot_bgcolor='#bad7ff', #set background color            
         )
 
-    fig = dict(data=[node_trace, edge_trace, midpoint_trace], layout=layout)
+    if ux!= -1:
+        print("IM HERE")
+        fig = dict(data=[user_click_trace,node_trace, edge_trace, midpoint_trace, realSites_trace], layout=layout)
+    else:
+        fig = dict(data=[node_trace, edge_trace, midpoint_trace, realSites_trace], layout=layout)
     fig['layout'].update(annotations=make_annotations(Xn, Yn, labels))
     plot(fig)
+
 
 def createWebViewer(filepath, netTup, real_sites):
     newJSON = importJSON(filepath)

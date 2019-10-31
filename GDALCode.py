@@ -15,6 +15,9 @@ UC_BUFFER_MAX = 10000 # 10 km
 NY_STATE_AREA = 141299400000 # m^2
 MAX_CLUMP_FACTOR = 10
 INITIAL_UCLICK_SWEEP = 1 # 1m
+USER_CLICK_X = -1.0
+USER_CLICK_Y = -1.0
+
 
 
 def determineOptimalSearchRadius(stateArea = NY_STATE_AREA,numberOfSites=None,clumpFactor=1):
@@ -29,6 +32,7 @@ def determineOptimalSearchRadius(stateArea = NY_STATE_AREA,numberOfSites=None,cl
 
 def getFirstFourDigitFraming(folderPath,siteLayerName):
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
     siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
@@ -38,12 +42,16 @@ def getFirstFourDigitFraming(folderPath,siteLayerName):
         if ff in ffDict.keys():
             continue 
         else:
-            ffDict[ff] = "Four Digit Unique"
+            ffDict[ff] = "It's a secret message Luigi"
     return list(ffDict.keys())
 
 def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None,clFactor=2):
     # Create vars for return information
+    global USER_CLICK_X
+    global USER_CLICK_Y
     starterFlow = None
+
+     
     # Load Lines
     path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
     
@@ -60,6 +68,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     # Create point from x,y and targRef
     ctran = osr.CoordinateTransformation(oRef,targRef)
     [p_lng,p_lat,z] = ctran.TransformPoint(x,y)
+    USER_CLICK_X = p_lng
+    USER_CLICK_Y = p_lat
     inputPointProj = ogr.Geometry(ogr.wkbPoint)
     inputPointProj.SetPoint_2D(0,p_lng,p_lat)
     r_ctran = osr.CoordinateTransformation(targRef,oRef)
@@ -79,10 +89,13 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
     
     while len(interSites) < clFactor and dist < maxDist:
-        geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry 
+        geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
+            
         # Intersect of BUFFER and SITES        
         for site in sl:
             # Grab information on the first four digits of the site
+            
+
             ingeom_site = site.GetGeometryRef()
             if ingeom_site.Within(geomBuffer):
                 # This site is inside the buffer!
@@ -91,7 +104,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         sl.ResetReading()
         if len(interSites) < clFactor:
             dist += 1000 # Expand by 2km
+            
 
+
+    
     # Load Selected Lines
     dataSource = ogr.Open(path)
     shpdriver = ogr.GetDriverByName('ESRI Shapefile')
@@ -105,18 +121,26 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
     lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
     lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
-    
+    # 46000 - 46007 StreamRiver [OK]
+    # 55800 ArtificialPath [OK]
+    # 56600 Coastline [only on coast. Do NOT use if not connected to an NHD Waterbody
+    # that is also a lake]
+    # 33400 Connector [OK]
     
     # Get certain info about site attributes
     siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
     stationName_index = sl.GetLayerDefn().GetFieldIndex("station_nm")
     
-    siteCounter = 0   
+    siteCounter = 0
+    
+    
     interLines = []
     # Intersect of BUFFER and LINES
     for line in linesLayer:        
         interLines.append(line)
    
+
+      
     # Buffer all Lines
     lBufferStore = {} # Stores line entry, Bool flag)
     
@@ -184,6 +208,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                        print(sid)
+                        print("made unique Site {0}".format(sid))
                         s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0,isl=True)
                         s.assignedID = sid
                         sitesStore[s_geom] = s
@@ -202,7 +228,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                             
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
-                        sid = SiteID(s[0].GetFieldAsString(siteNumber_index))                        
+                        sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                        print(sid)
+                        print("made unique Site {0}".format(sid))
                         s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0,isl=True)
                         sitesStore[s_geom] = s
                         siteCounter += 1
@@ -254,12 +282,15 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
                     downSite = s
                     sitesStore[downPt.Buffer(1)] = s
-                    siteCounter += 1                    
+                    siteCounter += 1
+                    
             fid = counter
             flen = float(e.GetFieldAsString(lineLength_index))
             fName = e.GetFieldAsString(lineName_index)
             fCode = e.GetFieldAsString(lineFCode_index)
-            fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!           
+            fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!
+            
+
             f = Flow(fid,upSite,downSite,flen,fRC)
             counter +=1
             if e == startingLine:
@@ -272,6 +303,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
     starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it
+    
+    
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
     
@@ -281,7 +314,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
     reals = net.getRealSites()
-    def find_with_no_sites(dataFolder, siteLayerName):
+    def find_with_no_sites(dataFolder, siteLayerName, net):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
             digitBasis.sort()
@@ -355,9 +388,10 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             # Next, run the normal algorithm but do not overwrite the calculated ones
             assert(len(rsc) == 1)
             iSNA(net,rsc[0])
+            newSite = interpolateLine()
             if VIS:
-                Visualizer.visualize(net)
-        return interpolateLine()
+                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
+        return newSite
     
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
@@ -377,7 +411,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         if len(reals) == 0:
             id = find_with_no_sites(dataFolder,siteLayerName)
             if VIS:
-                Visualizer.visualize(net)
+                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, id)
             return id
     else:
         # We must conform to the SiteTheory Standard for multiple sites
@@ -402,16 +436,19 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         # Determine the scenario 
         if uIndex == -1 and (lIndex > -1 and fIndex > -1):
             # Scenario <>---...---- (target flow)
-            # Run PSNA from the lower site            
+            # Run PSNA from the lower site
+            #pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
             rsc = net_tracer(net)    
             # Next, run the normal algorithm but do not overwrite the calculated ones
-            
+            #Visualizer.visualize(net)
             rsc.sort(key=lambda chain: len(chain),reverse=False)
             for chain in rsc:
                 iSNA(net,chain) 
+            
+            newSite = interpolateLine()
             if VIS:
-                Visualizer.visualize(net)           
-            return interpolateLine()
+                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)           
+            return newSite
         elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
             # Scenario ---- (target flow) ---...---<>
             # Run iSNA as if we had a single site
@@ -419,10 +456,11 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             # Next, run the normal algorithm but do not overwrite the calculated ones
             rsc.sort(key=lambda chain: len(chain),reverse=False)
             for chain in rsc:
-                iSNA(net,chain)   
+                iSNA(net,chain) 
+            newSite = interpolateLine()  
             if VIS:
-                Visualizer.visualize(net)
-            return interpolateLine()
+                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
+            return newSite
         else:
             # Scenario <>-- ... -- (target flow) --- ... ---<>
             # Only isolate a network from lIndex to uIndex
@@ -440,7 +478,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             
             
             netti.recalculateTotalLength()
-            
+            #Visualizer.visualize(netti)
             # Calculate the new UnitLength based on:
             diff = sl[0].assignedID - sl[len(sl) - 1].assignedID # A SiteID - SiteID should give me a decimal number or something
             UL = diff / netti.totalSize
@@ -451,9 +489,11 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 rsc = net_tracer(net,nettL[len(nettL) - 1])    # Force the origin of net_tracer to the upstream ID
                 # Next, run the normal algorithm but do not overwrite the calculated ones
                 iSNA(net,rsc[0])
+
+                newSite = interpolateLine()
                 if VIS:
-                    Visualizer.visualize(net)
-                return interpolateLine()
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
+                return newLine
             else:
                 # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
                 # should work out, in theory!
@@ -493,15 +533,24 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 l_geom = startingLine.GetGeometryRef()
                 ucBuff = ucPoint.Buffer(1)
                 ldiff = l_geom.Difference(ucBuff)
-                try:
-                    assert(ldiff.GetGeometryCount() == 2)
-                except AssertionError as ae:
-                    raise RuntimeError("determineNewSiteID() [Error]: Line user clicked on could not be split!")
+                assert(ldiff.GetGeometryCount() == 2)
 
                 ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
-                lengthP = orderedList[fIndex].length * ucToLower_Frac                
+                lengthP = orderedList[fIndex].length * ucToLower_Frac
+                
                 YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
                 if VIS:
-                    Visualizer.visualize(net)
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
                 return YAY
 
+    
+if __name__ == "__main__":
+    x = -74.7935758
+    y = 43.3986814
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    siteLayerName = "ProjectedSites"
+    lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,True)
+    
+    print(newSite)
