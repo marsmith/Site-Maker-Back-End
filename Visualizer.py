@@ -90,7 +90,6 @@ def create_visuals(test_name, ux, uy, id):
             real_sites.append([sites[site][1], sites[site][2]])
     Xr = [real_sites[k][0] for k in range(len(real_sites))]
     Yr = [real_sites[k][1] for k in range(len(real_sites))]
-    print(Xr)
     realSites_trace = go.Scatter(
         x=Xr, y=Yr,
         mode='markers',
@@ -202,7 +201,6 @@ def create_visuals(test_name, ux, uy, id):
         )
 
     if ux!= -1:
-        print("IM HERE")
         fig = dict(data=[user_click_trace,node_trace, edge_trace, midpoint_trace, realSites_trace], layout=layout)
     else:
         fig = dict(data=[node_trace, edge_trace, midpoint_trace, realSites_trace], layout=layout)
