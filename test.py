@@ -10,7 +10,7 @@ human verification, but this ensures there are no minor bugs
 '''
 
 EPSILON = 0.01
-PATH = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+PATH = "/Users/nicknack/Downloads/GDAL_DATA_PR"
 class TestPrecompiler(unittest.TestCase):
 #     def SiteLoader(self, filepath):
 #         jsonDict = open(filepath,"r").read()

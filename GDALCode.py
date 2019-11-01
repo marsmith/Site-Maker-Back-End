@@ -212,7 +212,6 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
-                        print(sid)
                         print("made unique Site {0}".format(sid))
                         s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0,isl=True)
                         s.assignedID = sid
@@ -233,7 +232,6 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
                         sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
-                        print(sid)
                         print("made unique Site {0}".format(sid))
                         s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0,isl=True)
                         sitesStore[s_geom] = s
@@ -318,7 +316,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
     reals = net.getRealSites()
-    def find_with_no_sites(dataFolder, siteLayerName, net):
+    def find_with_no_sites(dataFolder, siteLayerName):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
             digitBasis.sort()
@@ -392,10 +390,10 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             # Next, run the normal algorithm but do not overwrite the calculated ones
             assert(len(rsc) == 1)
             iSNA(net,rsc[0])
-            newSite = interpolateLine()
             if VIS:
+                newSite = interpolateLine()
                 Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-        return newSite
+        return interpolateLine()
     
     elif len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
@@ -447,12 +445,12 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             #Visualizer.visualize(net)
             rsc.sort(key=lambda chain: len(chain),reverse=False)
             for chain in rsc:
-                iSNA(net,chain) 
+                iSNA(net,chain)
             
-            newSite = interpolateLine()
             if VIS:
+                newSite = interpolateLine()
                 Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)           
-            return newSite
+            return interpolateLine()
         elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
             # Scenario ---- (target flow) ---...---<>
             # Run iSNA as if we had a single site
@@ -461,10 +459,11 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             rsc.sort(key=lambda chain: len(chain),reverse=False)
             for chain in rsc:
                 iSNA(net,chain) 
-            newSite = interpolateLine()  
+              
             if VIS:
+                newSite = interpolateLine()
                 Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-            return newSite
+            return interpolateLine()
         else:
             # Scenario <>-- ... -- (target flow) --- ... ---<>
             # Only isolate a network from lIndex to uIndex
@@ -494,10 +493,10 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 # Next, run the normal algorithm but do not overwrite the calculated ones
                 iSNA(net,rsc[0])
 
-                newSite = interpolateLine()
                 if VIS:
+                    newSite = interpolateLine()
                     Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-                return newLine
+                return interpolateLine()
             else:
                 # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
                 # should work out, in theory!
@@ -549,8 +548,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
 
     
 if __name__ == "__main__":
-    x = -74.7935758
-    y = 43.3986814
+    x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
+    y = 44.3492810
     folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitFINAL"
