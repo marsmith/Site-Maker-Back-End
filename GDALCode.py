@@ -32,7 +32,6 @@ def determineOptimalSearchRadius(stateArea = NY_STATE_AREA,numberOfSites=None,cl
 
 def getFirstFourDigitFraming(folderPath,siteLayerName):
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
-
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
     siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
@@ -103,17 +102,16 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
 
         sl.ResetReading()
         if len(interSites) < clFactor:
-            dist += 1000 # Expand by 2km
-            
+            dist += 1000 # Expand by 2km           
 
 
     
     # Load Selected Lines
     dataSource = ogr.Open(path)
     shpdriver = ogr.GetDriverByName('ESRI Shapefile')
-    linesLayer = dataSource.GetLayer()
-    
+    linesLayer = dataSource.GetLayer()    
     linesLayer.SetSpatialFilter(geomBuffer)
+
     
     # Get certain info about line attributes
     lineName_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_NAME")
@@ -176,6 +174,12 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # We have already visited this
             continue
         else:
+            # Check to make sure e does not have a restricted FCode
+            # Restricted FCodes are 42807
+            fCode = int(e.GetFieldAsString(lineFCode_index))
+            if fCode == 42807:
+                continue # Skip this line, ignore it completely
+            
             _npt = e.GetGeometryRef().GetPointCount()
             upPt = ogr.Geometry(ogr.wkbPoint)
             p_ = e.GetGeometryRef().GetPoint(0)
