@@ -188,22 +188,25 @@ class SiteID(object):
             n = SiteID(str(self))
             n.watershed = self.watershed
             n.extension = self.extension
-            if int(other) != other and int(other) < 1:                 
-                e = 100 - int(other * 100)
-                
+            if int(other) != other and int(other) < 1: 
+                e = int(other * 100)                
                 if not n.extension is None:
-                    n.extension -= e
-                    # We have an extension; make sure not to go under
-                    if n.extension <= 0:
-                        n.extension = 100 - abs(n.extension)
-                        n.value -= 1 # Increment the value up by one  
-                else:
-                    if e >= 100:
-                        n.extension = None
-                        n.value -= 1 
+                    # We have an extension already
+                    if e == 0:
+                        n.extension -= 1
                     else:
-                        n.extension = e
-                        n.value -= 1                 
+                        n.extension -= e
+                else:
+                    # We dont have an extension already
+                    n.value -= 1
+                    if e == 0:
+                        n.extension = 99
+                    else:
+                        n.extension = 100 - e
+                if n.extension <= 0:
+                    n.extension = None
+                    n.value -= 1
+                                       
             else:
                 n.value -= int(other)
                 # We do not need to add an extension

@@ -291,7 +291,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             fName = e.GetFieldAsString(lineName_index)
             fCode = e.GetFieldAsString(lineFCode_index)
             fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!
-            
+            if siteCounter == 15:
+                print("Hello")
 
             f = Flow(fid,upSite,downSite,flen,fRC)
             counter +=1
@@ -484,7 +485,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             #Visualizer.visualize(netti)
             # Calculate the new UnitLength based on:
             diff = sl[0].assignedID - sl[len(sl) - 1].assignedID # A SiteID - SiteID should give me a decimal number or something
-            UL = diff / netti.totalSize
+            UL = diff / netti.totalSize 
 
             if abs(UL) != UL:
                 # We have an error in SiteID's. The downstream ID is lower than the upstream ID
@@ -548,11 +549,11 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
 
     
 if __name__ == "__main__":
-    x = -73.8664487 # Sentinel Trib (downstream side) Returned 0427405868
-    y = 44.3492810
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    x = -74.2809852
+    y = 42.0959509
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
-    lineLayerName = "NHDFlowline_Project_SplitFINAL"
+    lineLayerName = "NHDFlowline_Project_SplitLin3"
 
     newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,True)
     

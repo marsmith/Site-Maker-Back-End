@@ -36,7 +36,7 @@ def peq(siteList,site):
 
 
 
-def removeUseless(net,addLengths=False,ucFlow=None):
+def removeUseless(net,addLengths=False,ucFlow=None,removeReals=False):
     ''' 
     Will remove sites from the network with only two neighbors (1 up 1 down)
     Will then merge the two flows together into one flow, keeping the length
@@ -53,13 +53,16 @@ def removeUseless(net,addLengths=False,ucFlow=None):
     sf = ucFlow
     while i in range(len(net.siteTable)):
         sit = net.siteTable[i]
-
+        if sit.isReal and not removeReals:
+            i += 1
+            continue
         cs = sit.connectedSites()        
         if len(cs) == 2 and cs[0][2].reachCode == cs[1][2].reachCode:
             # This site is deletable
             coni0 = cs[0]
             coni1 = cs[1]
-
+            
+                
             if addLengths:
                 newLen = coni0[2].length + coni1[2].length
             else:
