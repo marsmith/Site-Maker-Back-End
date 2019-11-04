@@ -4,6 +4,8 @@ from osgeo import osr
 from osgeo import gdal_array
 from osgeo import gdalconst
 import os
+import csv
+import time
 
 from Precompiler import *
 from net_tracer import net_tracer
@@ -602,11 +604,14 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         return foundSomething()
     
 if __name__ == "__main__":
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
+    file = open("GeneratedSiteTests.csv", "w")
+    writer = csv.writer(file)
+    writer.writerow(["Human", "Algorithm", "Runtime"])
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
     siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
@@ -626,8 +631,11 @@ if __name__ == "__main__":
         y = sgeom.GetY()
         [longg,latt,z] = cTran.TransformPoint(x,y)
         try:
+            before = time.time()
             newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-            print(f"Intial site id {siteID} algorithm got {newSite}")
+            after = time.time()
+            writer = csv.writer(file)
+            writer.writerow([siteID, newSite, after-before])
             if newSite == SiteID("00345000"):
                 newSeriesCntr += 1
             else:
@@ -636,4 +644,4 @@ if __name__ == "__main__":
             print("Error on finding")
         if newSeriesCntr + regCntr > 99:
             break
-    print("{0} out of {1} were new series".format(newSeriesCntr,regCntr + newSeriesCntr))
+    file.close()
