@@ -1,3 +1,6 @@
 /Data/SELakeOntario
 /Data/NYS_Datapack
 /Data/GDAL_Data/NHDFlowline
+/.mypy_cache
+/__pycache__
+/.vscode

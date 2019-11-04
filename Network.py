@@ -128,12 +128,11 @@ class Network(object):
         queue = list(faucets)
         while len(queue) >= 1:
             counter +=1
-            if counter >1000:
-                print()
-            u = queue.pop(0)
-            if u.id == 279:
-                print()
             
+            u = queue.pop(0)
+            
+            if counter > len(self.siteTable) * 10000:                
+                raise RuntimeError("calculateUpstreamDistances() [Error]: Took too")
             cs = u.connectedSites()
             
             cntr = 0

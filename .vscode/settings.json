@@ -12,5 +12,5 @@
     "python.linting.pylintEnabled": false,
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/Library/Frameworks/Python.framework/Versions/3.7/bin/python3"
+    "python.pythonPath": "C:\\Users\\mpanozzo\\AppData\\Local\\Continuum\\miniconda3\\python.exe"
 }

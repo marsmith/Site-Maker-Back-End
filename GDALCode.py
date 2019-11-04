@@ -11,7 +11,7 @@ from net_tracer import net_tracer
 # Program Constants
 
 UC_BUFFER_MIN = 1000 # 1 km
-UC_BUFFER_MAX = 10000 # 10 km
+UC_BUFFER_MAX = 30000 # 30 km
 NY_STATE_AREA = 141299400000 # m^2
 MAX_CLUMP_FACTOR = 10
 INITIAL_UCLICK_SWEEP = 1 # 1m
@@ -92,8 +92,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             
         # Intersect of BUFFER and SITES        
         for site in sl:
-            # Grab information on the first four digits of the site
-            
+            # Grab information on the first four digits of the site          
 
             ingeom_site = site.GetGeometryRef()
             if ingeom_site.Within(geomBuffer):
@@ -103,7 +102,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         sl.ResetReading()
         if len(interSites) < clFactor:
             dist += 1000 # Expand by 2km           
-
+        
 
     
     # Load Selected Lines
@@ -151,6 +150,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     ucBuff = inputPointProj.Buffer(1)
     i = 0
     startingIndex = None
+    startingLine = None
     for line in interLines:       
         e = (line.GetGeometryRef().Buffer(INITIAL_UCLICK_SWEEP),False)
         lBufferStore[line] = e[1] # Original Line, Buffered Geometry 
@@ -159,7 +159,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         i += 1
         
     if startingLine is None:        
-        return
+        raise RuntimeError("isolateNetwork() [Error]: User Click was not snapped to line!")
     
     queue = [] # Stores keys
     queue.append(startingLine)
@@ -405,46 +405,188 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     # -------- DIFFERENT REAL SITE CASES -------------------------
     #------------------------------------------------------------
     #Visualizer.visualize(net)
-    if len(reals) == 1:
-        sinks = net.calculateSink()
-        if len(sinks) > 1:
-            min_len = 100000
-            min_sink = None
-            for sink in sinks:
-                temp = testFlight(net, startFlow, sink)
-                if len(temp) < min_len:
-                    min_len = len(temp)
-                    min_sink = sink
-            sink = min_sink
-        else:
-            sink = sinks[0]
-        if reals[0] == sink:
-            # We should run pSNA from the site upstream from the sink
-            uSiteID = sink.assignedID - sink.flowsCon[0].length
-
-            pSNA(net,uSiteID,sink.flowsCon[0].upstreamSite)
-
-        else:
-            rsc = net_tracer(net)    
-            # Next, run the normal algorithm but do not overwrite the calculated ones
-            assert(len(rsc) == 1)
-            iSNA(net,rsc[0])
-            if VIS:
-                newSite = interpolateLine()
-                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-        return interpolateLine()
     
-    elif len(reals) < 1:
+    def foundSomething():
+        if len(reals) == 1:
+            sinks = net.calculateSink()
+            if len(sinks) > 1:
+                min_len = 100000
+                min_sink = None
+                for sink in sinks:
+                    temp = testFlight(net, startFlow, sink)
+                    if len(temp) < min_len:
+                        min_len = len(temp)
+                        min_sink = sink
+                sink = min_sink
+            else:
+                sink = sinks[0]
+            if reals[0] == sink:
+                # We should run pSNA from the site upstream from the sink
+                uSiteID = sink.assignedID - sink.flowsCon[0].length
+
+                pSNA(net,uSiteID,sink.flowsCon[0].upstreamSite)
+
+            else:
+                rsc = net_tracer(net)    
+                # Next, run the normal algorithm but do not overwrite the calculated ones
+                assert(len(rsc) == 1)
+                iSNA(net,rsc[0])
+                if VIS:
+                    newSite = interpolateLine()
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
+            return interpolateLine()       
+        
+        else:
+            # We must conform to the SiteTheory Standard for multiple sites
+            # Determine order of execution
+            
+            orderedList = testFlight(net,startFlow)
+            
+            fIndex = -1 #index where the starter flow is
+            lIndex = -1 # Index of lower site (a site below the target flow)
+            uIndex = -1 # Index of upper site (a site above the target flow)
+            for i in range(len(orderedList)):
+                obj = orderedList[i]
+                if isinstance(obj,Flow) and obj == startFlow:
+                    fIndex = i
+                elif isinstance(obj,Site) and (obj.assignedID > 0):
+                    # We have a real site
+                    if fIndex == -1:
+                        lIndex = i
+                    else:
+                        uIndex = i
+                        break # Weve found the upper index, break
+            # Determine the scenario 
+            if uIndex == -1 and (lIndex > -1 and fIndex > -1):
+                # Scenario <>---...---- (target flow)
+                # Run PSNA from the lower site
+                #pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
+                rsc = net_tracer(net)    
+                # Next, run the normal algorithm but do not overwrite the calculated ones
+                #Visualizer.visualize(net)
+                rsc.sort(key=lambda chain: len(chain),reverse=False)
+                for chain in rsc:
+                    iSNA(net,chain)
+                
+                if VIS:
+                    newSite = interpolateLine()
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)           
+                return interpolateLine()
+            elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
+                # Scenario ---- (target flow) ---...---<>
+                # Run iSNA as if we had a single site
+                rsc = net_tracer(net)    
+                # Next, run the normal algorithm but do not overwrite the calculated ones
+                rsc.sort(key=lambda chain: len(chain),reverse=False)
+                for chain in rsc:
+                    iSNA(net,chain) 
+                
+                if VIS:
+                    newSite = interpolateLine()
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
+                return interpolateLine()
+            elif str(orderedList[lIndex].assignedID)[0:4] != str(orderedList[uIndex].assignedID)[0:4]:
+                # We have two different series on the same line. Just use the downstream ID and work from
+                # there only
+                raise RuntimeError("Error: Unimplemented conflicting series check!")
+            else:
+                # Scenario <>-- ... -- (target flow) --- ... ---<>
+                # Only isolate a network from lIndex to uIndex
+                nettL = orderedList[lIndex:uIndex + 1] # (becacuse slicing isnt inclusive in python)
+                sl = []
+                fl = []
+
+                for obj in nettL:
+                    if isinstance(obj,Site):
+                        sl.append(obj)
+                    elif isinstance(obj,Flow):
+                        fl.append(obj)
+
+                netti = Network(fl,sl)
+                
+                
+                netti.recalculateTotalLength()
+                #Visualizer.visualize(netti)
+                # Calculate the new UnitLength based on:
+                diff = sl[0].assignedID - sl[len(sl) - 1].assignedID # A SiteID - SiteID should give me a decimal number or something
+                UL = diff / netti.totalSize 
+
+                if abs(UL) != UL:
+                    # We have an error in SiteID's. The downstream ID is lower than the upstream ID
+                    # Revert to case where we have one real upstream ID only
+                    rsc = net_tracer(net,nettL[len(nettL) - 1])    # Force the origin of net_tracer to the upstream ID
+                    # Next, run the normal algorithm but do not overwrite the calculated ones
+                    iSNA(net,rsc[0])
+
+                    if VIS:
+                        newSite = interpolateLine()
+                        Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
+                    return interpolateLine()
+                else:
+                    # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
+                    # should work out, in theory!
+                    netti.unitLength = UL
+
+                    uSiteID = sl[0].assignedID - (sl[0].flowsCon[0].length * UL)
+                    # Go based on the orderedList Now, since basing off of a new would be a disaster
+                    # (i.e.) due to the removal process, some things will be disconnected or 
+                    # unreachable
+                    distAccum = 0
+                    deltaD = 0
+                    currID = None
+                    for i in range(lIndex,uIndex):
+                        obj = orderedList[i]
+                        if isinstance(obj,Site):                        
+                            if currID is None:
+                                currID = obj.assignedID
+                                continue # First iteration, no counting
+                            else:
+                                # Try to compute a new ID for this object
+                                # Since the ordered list is essentially a linearized network, we can
+                                # just subtract each time
+                                currID = currID - (deltaD * UL)
+                            if obj.assignedID < 0 or obj.assignedID is None:
+                                # We dont have an obj ID yet, assign
+                                obj.assignedID = currID
+                        elif isinstance(obj,Flow):
+                            if obj.downstreamSite.assignedID < 0:
+                                # Lets pretend were using the reference ID (the currID)
+                                obj.downstreamSite.assignedID = currID
+
+                            deltaD = obj.length
+                            distAccum += obj.length                
+                    # Here we must do our own interpolate line because we have a
+                    # special disjointed network case
+                    if isTest:
+                        if startFlow.downstreamSite.id == 0:
+                            return startFlow.downstreamSite.assignedID
+                        else:
+                            return startFlow.upstreamSite.assignedID
+                    else:
+                        l_geom = startingLine.GetGeometryRef()
+                        ucBuff = ucPoint.Buffer(1)
+                        ldiff = l_geom.Difference(ucBuff)
+                        assert(ldiff.GetGeometryCount() == 2)
+
+                        ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
+                        lengthP = orderedList[fIndex].length * ucToLower_Frac
+                        
+                        YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
+                        if VIS:
+                            Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
+                        return YAY
+    if len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
         # next numbered sites sharing the first four numbers are on.      
-         
+        
         # Try running again but this time go to the extreme,
         # based on the site density of the state
+        prev = determineOptimalSearchRadius(NY_STATE_AREA,numSites,2)
         r = determineOptimalSearchRadius(NY_STATE_AREA,numSites,3)
-
+        reals = []
         if r <= UC_BUFFER_MAX:
             # Radius recommended does not exceed upper bounds! Execute again
-            [net,ucPoint,startingLine,startFlow,siteLayer,interSites, length] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,r)    
+            [net,ucPoint,startingLine,startFlow,siteLayer,interSites, length] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,prev,r)    
             net.calculateUpstreamDistances()    
             net.calcStraihler()    
             reals = net.getRealSites()
@@ -454,145 +596,13 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             if VIS:
                 Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, id)
             return id
-    else:
-        # We must conform to the SiteTheory Standard for multiple sites
-        # Determine order of execution
-        
-        orderedList = testFlight(net,startFlow)
-        
-        fIndex = -1 #index where the starter flow is
-        lIndex = -1 # Index of lower site (a site below the target flow)
-        uIndex = -1 # Index of upper site (a site above the target flow)
-        for i in range(len(orderedList)):
-            obj = orderedList[i]
-            if isinstance(obj,Flow) and obj == startFlow:
-                fIndex = i
-            elif isinstance(obj,Site) and (obj.assignedID > 0):
-                # We have a real site
-                if fIndex == -1:
-                    lIndex = i
-                else:
-                    uIndex = i
-                    break # Weve found the upper index, break
-        # Determine the scenario 
-        if uIndex == -1 and (lIndex > -1 and fIndex > -1):
-            # Scenario <>---...---- (target flow)
-            # Run PSNA from the lower site
-            #pSNA(net,orderedList[lIndex].assignedID,orderedList[lIndex])
-            rsc = net_tracer(net)    
-            # Next, run the normal algorithm but do not overwrite the calculated ones
-            #Visualizer.visualize(net)
-            rsc.sort(key=lambda chain: len(chain),reverse=False)
-            for chain in rsc:
-                iSNA(net,chain)
-            
-            if VIS:
-                newSite = interpolateLine()
-                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)           
-            return interpolateLine()
-        elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
-            # Scenario ---- (target flow) ---...---<>
-            # Run iSNA as if we had a single site
-            rsc = net_tracer(net)    
-            # Next, run the normal algorithm but do not overwrite the calculated ones
-            rsc.sort(key=lambda chain: len(chain),reverse=False)
-            for chain in rsc:
-                iSNA(net,chain) 
-              
-            if VIS:
-                newSite = interpolateLine()
-                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-            return interpolateLine()
         else:
-            # Scenario <>-- ... -- (target flow) --- ... ---<>
-            # Only isolate a network from lIndex to uIndex
-            nettL = orderedList[lIndex:uIndex + 1] # (becacuse slicing isnt inclusive in python)
-            sl = []
-            fl = []
-
-            for obj in nettL:
-                if isinstance(obj,Site):
-                    sl.append(obj)
-                elif isinstance(obj,Flow):
-                    fl.append(obj)
-
-            netti = Network(fl,sl)
-            
-            
-            netti.recalculateTotalLength()
-            #Visualizer.visualize(netti)
-            # Calculate the new UnitLength based on:
-            diff = sl[0].assignedID - sl[len(sl) - 1].assignedID # A SiteID - SiteID should give me a decimal number or something
-            UL = diff / netti.totalSize 
-
-            if abs(UL) != UL:
-                # We have an error in SiteID's. The downstream ID is lower than the upstream ID
-                # Revert to case where we have one real upstream ID only
-                rsc = net_tracer(net,nettL[len(nettL) - 1])    # Force the origin of net_tracer to the upstream ID
-                # Next, run the normal algorithm but do not overwrite the calculated ones
-                iSNA(net,rsc[0])
-
-                if VIS:
-                    newSite = interpolateLine()
-                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-                return interpolateLine()
-            else:
-                # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
-                # should work out, in theory!
-                netti.unitLength = UL
-
-                uSiteID = sl[0].assignedID - (sl[0].flowsCon[0].length * UL)
-                # Go based on the orderedList Now, since basing off of a new would be a disaster
-                # (i.e.) due to the removal process, some things will be disconnected or 
-                # unreachable
-                distAccum = 0
-                deltaD = 0
-                currID = None
-                for i in range(lIndex,uIndex):
-                    obj = orderedList[i]
-                    if isinstance(obj,Site):                        
-                        if currID is None:
-                            currID = obj.assignedID
-                            continue # First iteration, no counting
-                        else:
-                            # Try to compute a new ID for this object
-                            # Since the ordered list is essentially a linearized network, we can
-                            # just subtract each time
-                            currID = currID - (deltaD * UL)
-                        if obj.assignedID < 0 or obj.assignedID is None:
-                            # We dont have an obj ID yet, assign
-                            obj.assignedID = currID
-                    elif isinstance(obj,Flow):
-                        if obj.downstreamSite.assignedID < 0:
-                            # Lets pretend were using the reference ID (the currID)
-                            obj.downstreamSite.assignedID = currID
-
-                        deltaD = obj.length
-                        distAccum += obj.length                
-                # Here we must do our own interpolate line because we have a
-                # special disjointed network case
-                if isTest:
-                    if startFlow.downstreamSite.id == 0:
-                        return startFlow.downstreamSite.assignedID
-                    else:
-                        return startFlow.upstreamSite.assignedID
-                else:
-                    l_geom = startingLine.GetGeometryRef()
-                    ucBuff = ucPoint.Buffer(1)
-                    ldiff = l_geom.Difference(ucBuff)
-                    assert(ldiff.GetGeometryCount() == 2)
-
-                    ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
-                    lengthP = orderedList[fIndex].length * ucToLower_Frac
-                    
-                    YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
-                    if VIS:
-                        Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
-                    return YAY
-
+            return foundSomething()
+    else:
+        return foundSomething()
     
 if __name__ == "__main__":
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
@@ -607,13 +617,23 @@ if __name__ == "__main__":
     targRef = osr.SpatialReference()
     targRef.ImportFromEPSG(26918)
     cTran = osr.CoordinateTransformation(targRef,oRef)
+    newSeriesCntr = 0
+    regCntr = 0
     for site in sl:
         siteID = site.GetFieldAsString(siteNumber_index)
         sgeom = site.GetGeometryRef()
         x = sgeom.GetX()
         y = sgeom.GetY()
         [longg,latt,z] = cTran.TransformPoint(x,y)
-        newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-        print(f"Intial site id {siteID} algorithm got {newSite}")
-        if counter == 100:
+        try:
+            newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+            print(f"Intial site id {siteID} algorithm got {newSite}")
+            if newSite == SiteID("00345000"):
+                newSeriesCntr += 1
+            else:
+                regCntr += 1
+        except:
+            print("Error on finding")
+        if newSeriesCntr + regCntr > 99:
             break
+    print("{0} out of {1} were new series".format(newSeriesCntr,regCntr + newSeriesCntr))

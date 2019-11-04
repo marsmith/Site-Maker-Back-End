@@ -55,7 +55,12 @@ class Flow(object):
         Returns [bool] : True if self has a lower priority than other. False otherwise.
         '''
         return self.hasHigherPriority(other)
-
+    def getSiteByID(self,id):
+        if self.upstreamSite.id == id:
+            return self.upstreamSite
+        elif self.downstreamSite.id == id:
+            return self.downstreamSite
+        return None
     def emptyCopy(self):
         fl2 = Flow(self.id,self.upstreamSite.emptyCopy(),self.downstreamSite.emptyCopy(),self.length,self.reachCode,self.name)
         return fl2
