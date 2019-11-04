@@ -211,13 +211,23 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                             
                     if not foundExistingSiteGeom:
                         # Need to create our own an add it to the table
-                        sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
-                        print("made unique Site {0}".format(sid))
-                        s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0,isl=True)
-                        s.assignedID = sid
-                        sitesStore[s_geom] = s
-                        upSite = s     
-                        siteCounter += 1                 
+                        # print(upPt.GetX())
+                        # print(USER_CLICK_X)
+                        # print(upPt.GetY())
+                        # print(USER_CLICK_Y)
+                        xdiff = abs(upPt.GetX() - USER_CLICK_X)
+                        ydiff = abs(upPt.GetY() - USER_CLICK_Y)
+                        if xdiff <= .01 and ydiff <= .01:
+                            upSite =  None
+                        
+                        else:
+                            sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                            #print("made unique Site {0}".format(sid))
+                            s = Site(siteCounter,upPt.GetX(),upPt.GetY(),0,isl=True)
+                            s.assignedID = sid
+                            sitesStore[s_geom] = s
+                            upSite = s     
+                            siteCounter += 1                 
                   
                 elif s_geom.Intersects(downPt):
                     # Found existing lower extent
@@ -230,14 +240,24 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                             downSite = sitesStore[k]                            
                             
                     if not foundExistingSiteGeom:
-                        # Need to create our own an add it to the table
-                        sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
-                        print("made unique Site {0}".format(sid))
-                        s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0,isl=True)
-                        sitesStore[s_geom] = s
-                        siteCounter += 1
-                        s.assignedID = sid
-                        downSite = s
+                        # print(upPt.GetX())
+                        # print(USER_CLICK_X)
+                        # print(upPt.GetY())
+                        # print(USER_CLICK_Y)
+                        xdiff = abs(upPt.GetX() - USER_CLICK_X)
+                        ydiff = abs(upPt.GetY() - USER_CLICK_Y)
+                        if xdiff <= .01 and ydiff <= .01:
+                            downSite = None
+                        
+                        else:
+                            # Need to create our own an add it to the table
+                            sid = SiteID(s[0].GetFieldAsString(siteNumber_index))
+                            #print("made unique Site {0}".format(sid))
+                            s = Site(siteCounter,downPt.GetX(),downPt.GetY(),0,isl=True)
+                            sitesStore[s_geom] = s
+                            siteCounter += 1
+                            s.assignedID = sid
+                            downSite = s
                  
                 
             # Find out which lines intersect on that point
@@ -292,7 +312,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             fCode = e.GetFieldAsString(lineFCode_index)
             fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!
             if siteCounter == 15:
-                print("Hello")
+                pass
+                #print("Hello")
 
             f = Flow(fid,upSite,downSite,flen,fRC)
             counter +=1
@@ -312,7 +333,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 
-def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False):
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=True):
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None,cf)
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
@@ -337,11 +358,16 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             newSiteID = SiteID(newHighest)
             return newSiteID
 
-    def interpolateLine():
+    def interpolateLine(isTesting = isTest):
 
         '''
         Will compute the ID for the new site based on ambient data in this surrounding function
         '''
+        if (isTesting):
+            if startFlow.downstreamSite.id == 0:
+                return startFlow.downstreamSite.assignedID
+            else:
+                return startFlow.upstreamSite.assignedID
         cs = startFlow.downstreamSite.connectedSites()
         ups = startFlow.upstreamSite
 
@@ -366,6 +392,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         l_geom = startingLine.GetGeometryRef()
         ucBuff = ucPoint.Buffer(1)
         ldiff = l_geom.Difference(ucBuff)
+        Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, 0)
         assert(ldiff.GetGeometryCount() == 2)
 
         ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
@@ -544,28 +571,49 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                         distAccum += obj.length                
                 # Here we must do our own interpolate line because we have a
                 # special disjointed network case
-                
-                l_geom = startingLine.GetGeometryRef()
-                ucBuff = ucPoint.Buffer(1)
-                ldiff = l_geom.Difference(ucBuff)
-                assert(ldiff.GetGeometryCount() == 2)
+                if isTest:
+                    if startFlow.downstreamSite.id == 0:
+                        return startFlow.downstreamSite.assignedID
+                    else:
+                        return startFlow.upstreamSite.assignedID
+                else:
+                    l_geom = startingLine.GetGeometryRef()
+                    ucBuff = ucPoint.Buffer(1)
+                    ldiff = l_geom.Difference(ucBuff)
+                    assert(ldiff.GetGeometryCount() == 2)
 
-                ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
-                lengthP = orderedList[fIndex].length * ucToLower_Frac
-                
-                YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
-                if VIS:
-                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
-                return YAY
+                    ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
+                    lengthP = orderedList[fIndex].length * ucToLower_Frac
+                    
+                    YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
+                    if VIS:
+                        Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
+                    return YAY
 
     
 if __name__ == "__main__":
-    x = -74.2809852
-    y = 42.0959509
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
+    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
-    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,True)
-    
-    print(newSite)
+    sitesDataSource = ogr.Open(path_sites)
+    sl = sitesDataSource.GetLayer()
+    siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+    counter = 0
+    oRef = osr.SpatialReference()
+    oRef.ImportFromEPSG(4326)
+    # Reproject
+    targRef = osr.SpatialReference()
+    targRef.ImportFromEPSG(26918)
+    cTran = osr.CoordinateTransformation(targRef,oRef)
+    for site in sl:
+        siteID = site.GetFieldAsString(siteNumber_index)
+        sgeom = site.GetGeometryRef()
+        x = sgeom.GetX()
+        y = sgeom.GetY()
+        [longg,latt,z] = cTran.TransformPoint(x,y)
+        newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+        print(f"Intial site id {siteID} algorithm got {newSite}")
+        if counter == 100:
+            break

@@ -210,7 +210,7 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
             elif theCon[1] == UPSTREAM_CON:
                 # This has been assigned already, seems like we are on a loop
                 theCon[2].unadressable = True # Designate that this should not be allowed for use
-                print("Found Unadressable Flow sector: {0}".format(theCon[2]))
+                #print("Found Unadressable Flow sector: {0}".format(theCon[2]))
         lifechoices.sort(key= lambda conTup1: conTup1[2],reverse=False)
         # Add these future explorations into the queue in order
         if len(cs) > 1:
@@ -285,7 +285,7 @@ def iSNA(net,rsc):
 
             
             if startSite is None:
-                print("INVALID START from {0}".format(u))
+                #print("INVALID START from {0}".format(u))
                 break
             elif u.downwardRefID is None and lastRef is None:
                 newSiteID = u.assignedID - fl.length

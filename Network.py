@@ -232,8 +232,8 @@ class Network(object):
                     dist[flow.id] = alt
                     flow.thisAndUpstream = alt
         
-        for f in self.flowTable:
-            print("Upstream %d, downstream %d, length %f, thisAndUpstream %f" %(f.upstreamSite.id, f.downstreamSite.id, f.length, dist[f.id]))
+        # for f in self.flowTable:
+        #     print("Upstream %d, downstream %d, length %f, thisAndUpstream %f" %(f.upstreamSite.id, f.downstreamSite.id, f.length, dist[f.id]))
     
     def find_flow(self, id_number):
         for flow in self.flowTable:

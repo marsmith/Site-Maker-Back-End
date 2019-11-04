@@ -200,7 +200,7 @@ def create_visuals(test_name, ux, uy, id):
         plot_bgcolor='#bad7ff', #set background color            
         )
 
-    if ux!= -1:
+    if ux!= -1 and uy != -1 and id != -1:
         fig = dict(data=[user_click_trace,node_trace, edge_trace, midpoint_trace, realSites_trace], layout=layout)
     else:
         fig = dict(data=[node_trace, edge_trace, midpoint_trace, realSites_trace], layout=layout)

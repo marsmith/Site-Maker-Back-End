@@ -457,6 +457,3 @@ class TestProject(unittest.TestCase):
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
-
-
-        
