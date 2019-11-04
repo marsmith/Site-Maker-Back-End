@@ -345,3 +345,118 @@ class TestProject(unittest.TestCase):
         print(newSite)
         if checkIfSiteExists(folderPath, siteLayerName, newSite):
             print("This site already exists!!!! X(")
+
+    def test_Rondout1(self):
+        x =  -74.262311 #rondout creek
+        y =   41.7815889
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+
+    def test_Rondout2(self):
+        x =  -73.9938401 #rondout creek
+        y =   41.9120557
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+    def test_Ostelic(self):
+        x = -75.8362380 #Ostelic River
+        y =  42.6063453
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+    def test_Seneca(self):
+        x = -76.8795714     #Seneca Lake
+        y =  42.4764193
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+    def test_Allegheny(self):
+        x = -78.8950485     #Allegheny Reservoir
+        y =  42.0579158
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+
+    def test_LongLake(self):
+        x = -74.3254918    #Long Lake
+        y =  44.0765791
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+
+    def test_isolatedOneida(self):
+        x = -75.8831253     #North of oneida
+        y =  43.4266847
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+        
+    def test_LongIsland1(self):
+        x = -73.6185210
+        y =  40.8345079
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+    
+    def test_belowStateLine(self):
+        x = -78.3956846    #Seneca Lake
+        y =  41.9783521
+        folderPath = PATH
+        siteLayerName = "ProjectedSites"
+        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+
+        newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
+        print(newSite)
+        if checkIfSiteExists(folderPath, siteLayerName, newSite):
+            print("This site already exists!!!! X(")
+
+
+        

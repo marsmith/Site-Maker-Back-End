@@ -19,7 +19,6 @@ def net_tracer(network,forcedOrigin=None):
                 real_sites_counter += 1
                 realSiteQueue.append(site)
                 rsc.append([])
-    print(real_sites_counter)
     rsc_c = 0
     while len(realSiteQueue) > 0:
         c = realSiteQueue.pop(0)

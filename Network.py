@@ -107,7 +107,6 @@ class Network(object):
             if flag:
                 # This site is downstream and is the only downstream site left
                 kaboodle.append(kit)
-        
         return kaboodle 
 
     def calculateUpstreamDistances(self):

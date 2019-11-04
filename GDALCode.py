@@ -379,7 +379,18 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     #------------------------------------------------------------
     #Visualizer.visualize(net)
     if len(reals) == 1:
-        sink = net.calculateSink()[0]
+        sinks = net.calculateSink()
+        if len(sinks) > 1:
+            min_len = 100000
+            min_sink = None
+            for sink in sinks:
+                temp = testFlight(net, startFlow, sink)
+                if len(temp) < min_len:
+                    min_len = len(temp)
+                    min_sink = sink
+            sink = min_sink
+        else:
+            sink = sinks[0]
         if reals[0] == sink:
             # We should run pSNA from the site upstream from the sink
             uSiteID = sink.assignedID - sink.flowsCon[0].length
