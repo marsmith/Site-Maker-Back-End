@@ -179,7 +179,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
-            if fCode == 42807:
+            if fCode == 42807 or fCode == 33600:
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
@@ -629,19 +629,18 @@ if __name__ == "__main__":
         sgeom = site.GetGeometryRef()
         x = sgeom.GetX()
         y = sgeom.GetY()
-        [longg,latt,z] = cTran.TransformPoint(x,y)
-        try:
-            before = time.time()
-            newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-            after = time.time()
-            writer = csv.writer(file)
-            writer.writerow([siteID, newSite, after-before])
-            if newSite == SiteID("00345000"):
-                newSeriesCntr += 1
-            else:
-                regCntr += 1
-        except:
-            print("Error on finding")
-        if newSeriesCntr + regCntr > 99:
-            break
-    file.close()
+        if siteID == "01304675":
+            [longg,latt,z] = cTran.TransformPoint(x,y)
+            try:
+                # 01304675
+                newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+                print(f"Intial site id {siteID} algorithm got {newSite}")
+                if newSite == SiteID("00345000"):
+                    newSeriesCntr += 1
+                else:
+                    regCntr += 1
+            except:
+                print("Error on finding")
+            if newSeriesCntr + regCntr > 99:
+                break
+    print("{0} out of {1} were new series".format(newSeriesCntr,regCntr + newSeriesCntr))
