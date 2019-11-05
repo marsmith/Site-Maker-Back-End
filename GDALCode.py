@@ -88,7 +88,52 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         # optimal solution
         maxDist = determineOptimalSearchRadius(numberOfSites=numSites,clumpFactor=clFactor)
 
+
+    # Perform an automated split line on point for all flowlines inside MAX_RADIUS 
+    # which intersect existing real sites
+    # Load Selected Lines
+    dataSource = ogr.Open(path)
+    shpdriver = ogr.GetDriverByName('ESRI Shapefile')
+    linesLayer = dataSource.GetLayer() 
+    linesLayer.SetSpatialRef(inputPointProj.Buffer(UC_BUFFER_MAX))
+    i = 0
+    # Get certain info about line attributes
+    lineName_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_NAME")
+    lineRC_index = linesLayer.GetLayerDefn().GetFieldIndex("ReachCode")
+    lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
+    lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
+    lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
     
+    while i < len(linesLayer):
+        lgeom = linesLayer[i].GetGeometryRef()
+        for s in siteLayer:
+            sbuff = s.GetGeometryRef().Buffer(1)
+            ldiff = l_geom.Difference(sbuff)
+            if ldiff.GetGeometryCount() == 0:
+                # We dont need to remove and add two
+                
+            elif ldiff.GetGeometryCount() == 2:
+                # Need to remove and add 2
+                lentry1 = ogr.Feature(linesLayer.GetLayerDefn())
+                lentry2 = ogr.Feature(linesLayer.GetLayerDefn())
+
+                name = linesLayer[i].GetFieldAsString(lineName_index)
+                lentry1.SetField("GNIS_NAME",name); lentry2.SetField("GNIS_NAME",name)
+                rc = linesLayer[i].GetFieldAsString(lineRC_index)
+                lentry1.SetField("ReachCode",rc); lentry2.SetField("ReachCode",rc)
+                gnisID = linesLayer[i].GetFieldAsString(lineID_index)
+                lentry1.SetField("GNIS_ID",gnisID); lentry2.SetField("GNIS_ID",gnisID)
+                
+
+
+
+                lentry1.SetGeometry(ldiff.GetGeometryRef(1))
+                lentry1.SetGeometry(ldiff.GetGeometryRef(0))
+
+            else:
+                print("Weird SplitLineOnPOint result!")
+
+
     while len(interSites) < clFactor and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
@@ -107,19 +152,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         
 
     
-    # Load Selected Lines
-    dataSource = ogr.Open(path)
-    shpdriver = ogr.GetDriverByName('ESRI Shapefile')
-    linesLayer = dataSource.GetLayer()    
+       
     linesLayer.SetSpatialFilter(geomBuffer)
 
     
-    # Get certain info about line attributes
-    lineName_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_NAME")
-    lineRC_index = linesLayer.GetLayerDefn().GetFieldIndex("ReachCode")
-    lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
-    lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
-    lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
     # 46000 - 46007 StreamRiver [OK]
     # 55800 ArtificialPath [OK]
     # 56600 Coastline [only on coast. Do NOT use if not connected to an NHD Waterbody
