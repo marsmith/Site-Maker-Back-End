@@ -179,7 +179,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
-            if fCode == 42807:
+            if fCode == 42807:  #or 33600:
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
@@ -335,11 +335,41 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 
-def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=True):
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=False):
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None,cf)
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
     reals = net.getRealSites()
+
+    def return_site(newSite, dataFolder, siteLayerName):
+        if newSite.extension:
+            extension_flag = True
+            path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+            sitesDataSource = ogr.Open(path_sites)
+            sl = sitesDataSource.GetLayer()
+            siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+            oRef = osr.SpatialReference()
+            oRef.ImportFromEPSG(4326)
+            # Reproject
+            targRef = osr.SpatialReference()
+            targRef.ImportFromEPSG(26918)
+            cTran = osr.CoordinateTransformation(targRef,oRef)
+            for site in sl:
+                siteID = site.GetFieldAsString(siteNumber_index)
+                siteID = SiteID(siteID)
+                if siteID.value == newSite.value:
+                    extension_flag = False
+                    break
+
+            if extension_flag:
+                newSite.extension = None
+                newSite.id = newSite.value
+                newSite.fullID = newSite.id
+                return newSite
+            else:
+                return newSite     
+        else:
+            return newSite
     def find_with_no_sites(dataFolder, siteLayerName):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
@@ -358,7 +388,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             newHighest = (int(before) + 1) * 10000 + 5000
             newHighest = "%08d" %(newHighest)
             newSiteID = SiteID(newHighest)
-            return newSiteID
+            return return_site(newSiteID, dataFolder, siteLayerName)
 
     def interpolateLine(isTesting = isTest):
 
@@ -402,7 +432,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         
         YAY = downstreamID - lengthP
         
-        return YAY
+        return return_site(YAY, dataFolder, siteLayerName)
 
     # -------- DIFFERENT REAL SITE CASES -------------------------
     #------------------------------------------------------------
@@ -436,7 +466,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 if VIS:
                     newSite = interpolateLine()
                     Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-            return interpolateLine()       
+            
+            newSite = interpolateLine() 
+            return return_site(newSite, dataFolder, siteLayerName)      
         
         else:
             # We must conform to the SiteTheory Standard for multiple sites
@@ -473,7 +505,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 if VIS:
                     newSite = interpolateLine()
                     Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)           
-                return interpolateLine()
+                newSite = interpolateLine()
+                return return_site(newSite, dataFolder, siteLayerName)
+
             elif (uIndex > -1 and fIndex > -1) and lIndex == -1:
                 # Scenario ---- (target flow) ---...---<>
                 # Run iSNA as if we had a single site
@@ -486,7 +520,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 if VIS:
                     newSite = interpolateLine()
                     Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-                return interpolateLine()
+                newSite = interpolateLine()
+                return return_site(newSite, dataFolder, siteLayerName)
             elif str(orderedList[lIndex].assignedID)[0:4] != str(orderedList[uIndex].assignedID)[0:4]:
                 # We have two different series on the same line. Just use the downstream ID and work from
                 # there only
@@ -523,7 +558,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                     if VIS:
                         newSite = interpolateLine()
                         Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, newSite)
-                    return interpolateLine()
+                    newSite = interpolateLine()
+                    return return_site(newSite, dataFolder, siteLayerName)
+                    
                 else:
                     # We have a valid UL, now compute the ID from the bottom ID, and theoretically everything
                     # should work out, in theory!
@@ -576,7 +613,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                         YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
                         if VIS:
                             Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
-                        return YAY
+                        
+                        return return_site(newSite, dataFolder, siteLayerName)
     if len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
         # next numbered sites sharing the first four numbers are on.      
@@ -597,7 +635,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             id = find_with_no_sites(dataFolder,siteLayerName)
             if VIS:
                 Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, id)
-            return id
+            return return_site(id, dataFolder, siteLayerName)
         else:
             return foundSomething()
     else:
@@ -609,39 +647,46 @@ if __name__ == "__main__":
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
-    file = open("GeneratedSiteTests.csv", "w")
-    writer = csv.writer(file)
-    writer.writerow(["Human", "Algorithm", "Runtime"])
-    sitesDataSource = ogr.Open(path_sites)
-    sl = sitesDataSource.GetLayer()
-    siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
-    counter = 0
-    oRef = osr.SpatialReference()
-    oRef.ImportFromEPSG(4326)
-    # Reproject
-    targRef = osr.SpatialReference()
-    targRef.ImportFromEPSG(26918)
-    cTran = osr.CoordinateTransformation(targRef,oRef)
-    newSeriesCntr = 0
-    regCntr = 0
-    for site in sl:
-        siteID = site.GetFieldAsString(siteNumber_index)
-        sgeom = site.GetGeometryRef()
-        x = sgeom.GetX()
-        y = sgeom.GetY()
-        [longg,latt,z] = cTran.TransformPoint(x,y)
-        try:
-            before = time.time()
-            newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-            after = time.time()
-            writer = csv.writer(file)
-            writer.writerow([siteID, newSite, after-before])
-            if newSite == SiteID("00345000"):
-                newSeriesCntr += 1
-            else:
-                regCntr += 1
-        except:
-            print("Error on finding")
-        if newSeriesCntr + regCntr > 99:
-            break
-    file.close()
+    x = -74.0136461 # Chubb River, returned 0427389473
+    y = 44.2623416
+    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,False)
+    print(newSite)
+
+    # file = open("GeneratedSiteTests.csv", "w")
+    # writer = csv.writer(file)
+    # writer.writerow(["Human", "Algorithm", "Runtime"])
+    # sitesDataSource = ogr.Open(path_sites)
+    # sl = sitesDataSource.GetLayer()
+    # siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+    # counter = 0
+    # oRef = osr.SpatialReference()
+    # oRef.ImportFromEPSG(4326)
+    # # Reproject
+    # targRef = osr.SpatialReference()
+    # targRef.ImportFromEPSG(26918)
+    # cTran = osr.CoordinateTransformation(targRef,oRef)
+    # newSeriesCntr = 0
+    # regCntr = 0
+    # for site in sl:
+    #     siteID = site.GetFieldAsString(siteNumber_index)
+    #     if siteID == '01304675':
+    #         print()
+    #     sgeom = site.GetGeometryRef()
+    #     x = sgeom.GetX()
+    #     y = sgeom.GetY()
+    #     [longg,latt,z] = cTran.TransformPoint(x,y)
+    #     try:
+    #         before = time.time()
+    #         newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+    #         after = time.time()
+    #         writer = csv.writer(file)
+    #         writer.writerow([siteID, newSite, after-before])
+    #         if newSite == SiteID("00345000"):
+    #             newSeriesCntr += 1
+    #         else:
+    #             regCntr += 1
+    #     except:
+    #         print("Error on finding")
+    #     if newSeriesCntr + regCntr > 99:
+    #         break
+    # file.close()
