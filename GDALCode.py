@@ -88,7 +88,52 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         # optimal solution
         maxDist = determineOptimalSearchRadius(numberOfSites=numSites,clumpFactor=clFactor)
 
+
+    # Perform an automated split line on point for all flowlines inside MAX_RADIUS 
+    # which intersect existing real sites
+    # Load Selected Lines
+    dataSource = ogr.Open(path)
+    shpdriver = ogr.GetDriverByName('ESRI Shapefile')
+    linesLayer = dataSource.GetLayer() 
+    linesLayer.SetSpatialRef(inputPointProj.Buffer(UC_BUFFER_MAX))
+    i = 0
+    # Get certain info about line attributes
+    lineName_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_NAME")
+    lineRC_index = linesLayer.GetLayerDefn().GetFieldIndex("ReachCode")
+    lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
+    lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
+    lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
     
+    while i < len(linesLayer):
+        lgeom = linesLayer[i].GetGeometryRef()
+        for s in siteLayer:
+            sbuff = s.GetGeometryRef().Buffer(1)
+            ldiff = l_geom.Difference(sbuff)
+            if ldiff.GetGeometryCount() == 0:
+                # We dont need to remove and add two
+                
+            elif ldiff.GetGeometryCount() == 2:
+                # Need to remove and add 2
+                lentry1 = ogr.Feature(linesLayer.GetLayerDefn())
+                lentry2 = ogr.Feature(linesLayer.GetLayerDefn())
+
+                name = linesLayer[i].GetFieldAsString(lineName_index)
+                lentry1.SetField("GNIS_NAME",name); lentry2.SetField("GNIS_NAME",name)
+                rc = linesLayer[i].GetFieldAsString(lineRC_index)
+                lentry1.SetField("ReachCode",rc); lentry2.SetField("ReachCode",rc)
+                gnisID = linesLayer[i].GetFieldAsString(lineID_index)
+                lentry1.SetField("GNIS_ID",gnisID); lentry2.SetField("GNIS_ID",gnisID)
+                
+
+
+
+                lentry1.SetGeometry(ldiff.GetGeometryRef(1))
+                lentry1.SetGeometry(ldiff.GetGeometryRef(0))
+
+            else:
+                print("Weird SplitLineOnPOint result!")
+
+
     while len(interSites) < clFactor and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
@@ -107,19 +152,10 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         
 
     
-    # Load Selected Lines
-    dataSource = ogr.Open(path)
-    shpdriver = ogr.GetDriverByName('ESRI Shapefile')
-    linesLayer = dataSource.GetLayer()    
+       
     linesLayer.SetSpatialFilter(geomBuffer)
 
     
-    # Get certain info about line attributes
-    lineName_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_NAME")
-    lineRC_index = linesLayer.GetLayerDefn().GetFieldIndex("ReachCode")
-    lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
-    lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
-    lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
     # 46000 - 46007 StreamRiver [OK]
     # 55800 ArtificialPath [OK]
     # 56600 Coastline [only on coast. Do NOT use if not connected to an NHD Waterbody
@@ -179,7 +215,11 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
+<<<<<<< HEAD
             if fCode == 42807:  #or 33600:
+=======
+            if fCode == 42807 or fCode == 33600:
+>>>>>>> 0b8e12f5a993f2e56a4d8fde129a04b721da5ac5
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
@@ -647,6 +687,7 @@ if __name__ == "__main__":
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
+<<<<<<< HEAD
     x = -74.0136461 # Chubb River, returned 0427389473
     y = 44.2623416
     newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,False)
@@ -690,3 +731,40 @@ if __name__ == "__main__":
     #     if newSeriesCntr + regCntr > 99:
     #         break
     # file.close()
+=======
+    file = open("GeneratedSiteTests.csv", "w")
+    writer = csv.writer(file)
+    writer.writerow(["Human", "Algorithm", "Runtime"])
+    sitesDataSource = ogr.Open(path_sites)
+    sl = sitesDataSource.GetLayer()
+    siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+    counter = 0
+    oRef = osr.SpatialReference()
+    oRef.ImportFromEPSG(4326)
+    # Reproject
+    targRef = osr.SpatialReference()
+    targRef.ImportFromEPSG(26918)
+    cTran = osr.CoordinateTransformation(targRef,oRef)
+    newSeriesCntr = 0
+    regCntr = 0
+    for site in sl:
+        siteID = site.GetFieldAsString(siteNumber_index)
+        sgeom = site.GetGeometryRef()
+        x = sgeom.GetX()
+        y = sgeom.GetY()
+        if siteID == "01304675":
+            [longg,latt,z] = cTran.TransformPoint(x,y)
+            try:
+                # 01304675
+                newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+                print(f"Intial site id {siteID} algorithm got {newSite}")
+                if newSite == SiteID("00345000"):
+                    newSeriesCntr += 1
+                else:
+                    regCntr += 1
+            except:
+                print("Error on finding")
+            if newSeriesCntr + regCntr > 99:
+                break
+    print("{0} out of {1} were new series".format(newSeriesCntr,regCntr + newSeriesCntr))
+>>>>>>> 0b8e12f5a993f2e56a4d8fde129a04b721da5ac5

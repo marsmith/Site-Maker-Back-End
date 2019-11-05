@@ -10,7 +10,7 @@ human verification, but this ensures there are no minor bugs
 '''
 
 EPSILON = 0.01
-PATH = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+PATH = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
 class TestPrecompiler(unittest.TestCase):
 #     def SiteLoader(self, filepath):
 #         jsonDict = open(filepath,"r").read()
@@ -266,7 +266,7 @@ class TestProject(unittest.TestCase):
         y = 44.2623416
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
@@ -279,7 +279,7 @@ class TestProject(unittest.TestCase):
         y = 44.3030970 
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
@@ -291,7 +291,7 @@ class TestProject(unittest.TestCase):
         y = 44.3038121
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
@@ -303,7 +303,7 @@ class TestProject(unittest.TestCase):
         y = 44.2371825
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
@@ -315,7 +315,7 @@ class TestProject(unittest.TestCase):
         y = 44.2363550
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
@@ -327,7 +327,7 @@ class TestProject(unittest.TestCase):
         y = 44.3492810
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
@@ -339,7 +339,7 @@ class TestProject(unittest.TestCase):
         y = 44.3470288
         folderPath = PATH
         siteLayerName = "ProjectedSites"
-        lineLayerName = "NHDFlowline_Project_SplitFINAL"
+        lineLayerName = "NHDFlowline_Project_SplitLin3"
 
         newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName)
         print(newSite)
