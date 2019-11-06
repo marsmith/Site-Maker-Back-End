@@ -104,7 +104,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
     lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
     lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
-    
+    '''
     while i < len(linesLayer):
         l_geom = linesLayer[i].GetGeometryRef()
         for s in sl:
@@ -150,7 +150,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                 print("Weird SplitLineOnPOint result!")
                 
         i += 1 # Increment line counter
-
+    '''
     while len(interSites) < clFactor and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
@@ -232,11 +232,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
-<<<<<<< HEAD
-            if fCode == 42807:  #or 33600:
-=======
             if fCode == 42807 or fCode == 33600:
->>>>>>> 0b8e12f5a993f2e56a4d8fde129a04b721da5ac5
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
@@ -700,8 +696,8 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     
 if __name__ == "__main__":
     folderPath = "C:\\Users\\mpanozzo\\Desktop\\Autosplit"
-    siteLayerName = "Dots"
-    lineLayerName = "Lines"
+    siteLayerName = "ProjectedSites"
+    lineLayerName = "NHDFlowline_Project_SplitLin3"
     longg = -73.7764461
     latt = 43.4912381
     # Testing just the auto split feature
@@ -710,51 +706,6 @@ if __name__ == "__main__":
 
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
-<<<<<<< HEAD
-    x = -74.0136461 # Chubb River, returned 0427389473
-    y = 44.2623416
-    newSite = determineNewSiteID(x,y,folderPath,siteLayerName,lineLayerName,3,False)
-    print(newSite)
-
-    # file = open("GeneratedSiteTests.csv", "w")
-    # writer = csv.writer(file)
-    # writer.writerow(["Human", "Algorithm", "Runtime"])
-    # sitesDataSource = ogr.Open(path_sites)
-    # sl = sitesDataSource.GetLayer()
-    # siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
-    # counter = 0
-    # oRef = osr.SpatialReference()
-    # oRef.ImportFromEPSG(4326)
-    # # Reproject
-    # targRef = osr.SpatialReference()
-    # targRef.ImportFromEPSG(26918)
-    # cTran = osr.CoordinateTransformation(targRef,oRef)
-    # newSeriesCntr = 0
-    # regCntr = 0
-    # for site in sl:
-    #     siteID = site.GetFieldAsString(siteNumber_index)
-    #     if siteID == '01304675':
-    #         print()
-    #     sgeom = site.GetGeometryRef()
-    #     x = sgeom.GetX()
-    #     y = sgeom.GetY()
-    #     [longg,latt,z] = cTran.TransformPoint(x,y)
-    #     try:
-    #         before = time.time()
-    #         newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-    #         after = time.time()
-    #         writer = csv.writer(file)
-    #         writer.writerow([siteID, newSite, after-before])
-    #         if newSite == SiteID("00345000"):
-    #             newSeriesCntr += 1
-    #         else:
-    #             regCntr += 1
-    #     except:
-    #         print("Error on finding")
-    #     if newSeriesCntr + regCntr > 99:
-    #         break
-    # file.close()
-=======
     file = open("GeneratedSiteTests.csv", "w")
     writer = csv.writer(file)
     writer.writerow(["Human", "Algorithm", "Runtime"])
@@ -790,4 +741,3 @@ if __name__ == "__main__":
             if newSeriesCntr + regCntr > 99:
                 break
     print("{0} out of {1} were new series".format(newSeriesCntr,regCntr + newSeriesCntr))
->>>>>>> 0b8e12f5a993f2e56a4d8fde129a04b721da5ac5
