@@ -95,7 +95,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     dataSource = ogr.Open(path)
     shpdriver = ogr.GetDriverByName('ESRI Shapefile')
     linesLayer = dataSource.GetLayer() 
-    linesLayer.SetSpatialRef(inputPointProj.Buffer(UC_BUFFER_MAX))
+    gg = inputPointProj.Buffer(UC_BUFFER_MAX)
+    linesLayer.SetSpatialFilter(gg)
     i = 0
     # Get certain info about line attributes
     lineName_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_NAME")
@@ -105,13 +106,15 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
     
     while i < len(linesLayer):
-        lgeom = linesLayer[i].GetGeometryRef()
-        for s in siteLayer:
-            sbuff = s.GetGeometryRef().Buffer(1)
-            ldiff = l_geom.Difference(sbuff)
-            if ldiff.GetGeometryCount() == 0:
+        l_geom = linesLayer[i].GetGeometryRef()
+        for s in sl:
+            sbuff = s.GetGeometryRef().Buffer(2)
+            ldiff = None
+            if l_geom.Intersects(sbuff):
+                ldiff = l_geom.Difference(sbuff)
+            if ldiff is None or ldiff.GetGeometryCount() == 0:
                 # We dont need to remove and add two
-                
+                pass
             elif ldiff.GetGeometryCount() == 2:
                 # Need to remove and add 2
                 lentry1 = ogr.Feature(linesLayer.GetLayerDefn())
@@ -123,16 +126,30 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                 lentry1.SetField("ReachCode",rc); lentry2.SetField("ReachCode",rc)
                 gnisID = linesLayer[i].GetFieldAsString(lineID_index)
                 lentry1.SetField("GNIS_ID",gnisID); lentry2.SetField("GNIS_ID",gnisID)
-                
+                fcodeee = linesLayer[i].GetFieldAsString(lineFCode_index)
+                lentry1.SetField("FCode",fcodeee); lentry2.SetField("FCode",fcodeee)
 
+                # Determine what fraction of LengthKM goes to each feature
+                totalLen = float(linesLayer[i].GetFieldAsString(lineLength_index))
+                g1 = ldiff.GetGeometryRef(0)
+                g2 = ldiff.GetGeometryRef(1)
+                fracLentry1 = g1.Length() / l_geom.Length()
+                fracLentry2 = 1.0 - fracLentry1
 
-
-                lentry1.SetGeometry(ldiff.GetGeometryRef(1))
-                lentry1.SetGeometry(ldiff.GetGeometryRef(0))
-
+                lentry1.SetGeometry(g1)
+                lentry2.SetGeometry(g2)
+                lentry1.SetField("LengthKM",totalLen * fracLentry1); lentry2.SetField("LengthKM",totalLen * fracLentry2)
+                # Remove the old line entry and add in the two new ones in its index
+                linesLayer.DeleteFeature(linesLayer[i].GetFID())
+                linesLayer.CreateFeature(lentry1)
+                linesLayer.CreateFeature(lentry2)
+                print("Just split line on existing site!")
+                i -= 1
+                break
             else:
                 print("Weird SplitLineOnPOint result!")
-
+                
+        i += 1 # Increment line counter
 
     while len(interSites) < clFactor and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
@@ -682,9 +699,15 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         return foundSomething()
     
 if __name__ == "__main__":
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    siteLayerName = "ProjectedSites"
-    lineLayerName = "NHDFlowline_Project_SplitLin3"
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\Autosplit"
+    siteLayerName = "Dots"
+    lineLayerName = "Lines"
+    longg = -73.7764461
+    latt = 43.4912381
+    # Testing just the auto split feature
+    newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+
+
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
 <<<<<<< HEAD
