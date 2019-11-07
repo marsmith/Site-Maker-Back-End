@@ -276,32 +276,35 @@ def iSNA(net,rsc):
             startSite = None
             fl = None
             
+            up_connections = []
             for con in cs:
                 if con[1] == UPSTREAM_CON:
                     if con[0].assignedID < 0 or con[0].assignedID is None:
                         # We have a blank site. Start from here                        
-                        startSite = con[0]
-                        fl = con[2]
+                        up_connections.append(con[2])
 
-            
-            if startSite is None:
-                #print("INVALID START from {0}".format(u))
-                break
-            elif u.downwardRefID is None and lastRef is None:
-                newSiteID = u.assignedID - fl.length
-            elif u.downwardRefID is None:
+            up_connections.sort()
+            for con in up_connections:
+                startSite = con.downstreamSite
+                fl = con
+                if startSite is None:
+                    #print("INVALID START from {0}".format(u))
+                    break
+                elif u.downwardRefID is None and lastRef is None:
+                    newSiteID = u.assignedID - fl.length
+                elif u.downwardRefID is None:
 
-                newSiteID = lastRef - fl.length
-                u.downwardRefID = lastRef
-            else:
-                newSiteID = u.downwardRefID - fl.length
-                        
-            lastRef = pSNA(net,newSiteID,startSite,False)
-            # Determin the lastRef
-            
+                    newSiteID = lastRef - fl.length
+                    u.downwardRefID = lastRef
+                else:
+                    newSiteID = u.downwardRefID - fl.length
+                            
+                lastRef = pSNA(net,newSiteID,startSite,False)
+                # Determin the lastRef
+                
 
-            if u.downwardRefID is None:
-                u.downwardRefID = lastRef
+                if u.downwardRefID is None:
+                    u.downwardRefID = lastRef
 
         i += 1
 

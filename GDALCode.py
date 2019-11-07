@@ -388,7 +388,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 
-def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=False):
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=True):
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None,cf)
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
@@ -477,7 +477,6 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         l_geom = startingLine.GetGeometryRef()
         ucBuff = ucPoint.Buffer(1)
         ldiff = l_geom.Difference(ucBuff)
-        Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, 0)
         assert(ldiff.GetGeometryCount() == 2)
 
         ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
@@ -499,7 +498,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 min_sink = None
                 for sink in sinks:
                     temp = testFlight(net, startFlow, sink)
-                    if len(temp) < min_len:
+                    if len(temp) < min_len and len(temp) != 1:
                         min_len = len(temp)
                         min_sink = sink
                 sink = min_sink
@@ -667,7 +666,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                         if VIS:
                             Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, YAY)
                         
-                        return return_site(newSite, dataFolder, siteLayerName)
+                        return return_site(YAY, dataFolder, siteLayerName)
     if len(reals) < 1:
         # We need to base our siteID off of the length of the networks which the other
         # next numbered sites sharing the first four numbers are on.      
@@ -695,13 +694,10 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         return foundSomething()
     
 if __name__ == "__main__":
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\Autosplit"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
-    longg = -73.7764461
-    latt = 43.4912381
     # Testing just the auto split feature
-    newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
 
 
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
@@ -726,18 +722,21 @@ if __name__ == "__main__":
         sgeom = site.GetGeometryRef()
         x = sgeom.GetX()
         y = sgeom.GetY()
-        if siteID == "01304675":
-            [longg,latt,z] = cTran.TransformPoint(x,y)
+        [longg,latt,z] = cTran.TransformPoint(x,y)
+        if siteID == "01304700":
             try:
-                # 01304675
+                before = time.time()
                 newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-                print(f"Intial site id {siteID} algorithm got {newSite}")
+                after = time.time()
+                writer = csv.writer(file)
+                writer.writerow([siteID, newSite, after-before])
                 if newSite == SiteID("00345000"):
                     newSeriesCntr += 1
                 else:
                     regCntr += 1
             except:
                 print("Error on finding")
-            if newSeriesCntr + regCntr > 99:
+                newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+            if newSeriesCntr + regCntr > 100:
                 break
-    print("{0} out of {1} were new series".format(newSeriesCntr,regCntr + newSeriesCntr))
+    file.close()
