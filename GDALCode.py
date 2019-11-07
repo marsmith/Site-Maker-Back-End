@@ -694,7 +694,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         return foundSomething()
     
 if __name__ == "__main__":
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     # Testing just the auto split feature

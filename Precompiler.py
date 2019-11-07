@@ -285,7 +285,7 @@ def iSNA(net,rsc):
 
             up_connections.sort()
             for con in up_connections:
-                startSite = con.downstreamSite
+                startSite = con.upstreamSite
                 fl = con
                 if startSite is None:
                     #print("INVALID START from {0}".format(u))
