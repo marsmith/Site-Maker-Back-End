@@ -232,7 +232,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
-            if fCode == 42807 or fCode == 33600:
+            if fCode == 42807 or fCode == 33600 or fCode == 55800:
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
