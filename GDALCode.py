@@ -6,6 +6,7 @@ from osgeo import gdalconst
 import os
 import csv
 import time
+import threading
 
 from Precompiler import *
 from net_tracer import net_tracer
@@ -694,6 +695,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         return foundSomething()
     
 if __name__ == "__main__":
+    # Set a time limit on execution of this module to 30 seconds
+    
+
     folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
