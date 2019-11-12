@@ -7,7 +7,7 @@ import os
 import csv
 import time
 import threading
-
+import Timesaver
 from Precompiler import *
 from net_tracer import net_tracer
 
@@ -726,21 +726,20 @@ if __name__ == "__main__":
         sgeom = site.GetGeometryRef()
         x = sgeom.GetX()
         y = sgeom.GetY()
-        [longg,latt,z] = cTran.TransformPoint(x,y)
-        if siteID == "01304700":
-            try:
-                before = time.time()
-                newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-                after = time.time()
-                writer = csv.writer(file)
-                writer.writerow([siteID, newSite, after-before])
-                if newSite == SiteID("00345000"):
-                    newSeriesCntr += 1
-                else:
-                    regCntr += 1
-            except:
-                print("Error on finding")
-                newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
-            if newSeriesCntr + regCntr > 100:
-                break
+        [longg,latt,z] = cTran.TransformPoint(x,y)    
+        try:
+            before = time.time()
+            newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+            after = time.time()
+            writer = csv.writer(file)
+            writer.writerow([siteID, newSite, after-before])
+            if newSite == SiteID("00345000"):
+                newSeriesCntr += 1
+            else:
+                regCntr += 1
+        except:
+            print("Error on finding")
+            
+        if newSeriesCntr + regCntr > 100:
+            break
     file.close()
