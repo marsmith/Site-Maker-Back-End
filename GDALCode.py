@@ -419,7 +419,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     def return_site(newSite, dataFolder, siteLayerName):
         if newSite.extension:
             extension_flag = True
-            path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+            path_sites = str(dataFolder) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
             sitesDataSource = ogr.Open(path_sites)
             sl = sitesDataSource.GetLayer()
             siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
@@ -749,7 +749,8 @@ if __name__ == "__main__":
         [longg,latt,z] = cTran.TransformPoint(x,y)    
         try:
             before = time.time()
-            newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+            newSite = Timesaver.determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,15)
+            print("RAN!")
             after = time.time()
             writer = csv.writer(file)
             writer.writerow([siteID, newSite, after-before])
