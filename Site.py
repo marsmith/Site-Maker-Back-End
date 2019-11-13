@@ -80,6 +80,9 @@ class Site(object):
         '''
         return self.id > other.id
     def isConfluence(self):
+        '''
+        Returns [Bool]: Is this Site a confluence or not?
+        '''
         cs = self.connectedSites()
         numUp = 0
         numDown = 0

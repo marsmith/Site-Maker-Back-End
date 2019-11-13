@@ -7,12 +7,13 @@ class SiteID(object):
     Represents a USGS groundwater site identifcation number (8 to 10 digits long)
     There are one to two components for every SiteID:
      (value)        | (extension)
-        00010000        9999    ---
-        10010000        9876    12
-    Watersheds are a national level number (the smallest subdivision being 12 digits)
-        These are not included in the main ID portion but will become important later on
+        00010000        --
+        10010000        12
+
+    Watersheds are a national level number
+    These are not included in the main ID portion but will become important later on
     Values are 8 digits long
-    Extensions may be None, 00 to 99. 
+    Extensions may be None, 01 to 99. 
 
     Class Variables
     ---------------------------------------------------------------------------
@@ -23,8 +24,8 @@ class SiteID(object):
     id [number] The actually used Id portion (value + extension)
     Usage
     ---------------------------------------------------------------------------
-    >>> siteIDObj = SiteID(100100000000,99876543)
-    >>> siteIDObj2 = SiteID(100100000000,99876543,13)
+    >>> siteIDObj = SiteID("99876543")
+    >>> siteIDObj2 = SiteID("9987654313")
     >>> print(siteIDObj)
     >>> print(siteIDObj < siteIDObj2)
     99876543
@@ -32,6 +33,11 @@ class SiteID(object):
     '''
 
     def __init__(self,stringg):
+        '''
+        Construct a net SiteID object based on a string.
+        The length of the string must be in range [8,10] (inclusive)
+        '''
+
         assert(len(stringg) >= 8)
         self.value = int(stringg[0:8])
         self.id = int(stringg)
@@ -51,6 +57,7 @@ class SiteID(object):
         '''
         Returns a string version of the SiteID. Preserves all digits!
         i.e. A SiteID of 00454950 will NOT become "4595"
+
         Returns [str]
         '''
         if self.extension is None:
@@ -125,7 +132,16 @@ class SiteID(object):
             return self.fullID == other.fullID
 
     def __add__(self, other):
-        
+        '''
+        Performs addition operation between SiteID and other
+
+        other [Number or SiteID]: The second operand.
+
+        Returns [Number or SiteID]: If other is Number, we will calculate a new SiteID object
+        based on the distance traveled.
+
+        If other is SiteID, we will do nothing
+        '''
         if type(self) is SiteID and type(other) is SiteID:
             if self.watershed != other.watershed:
                 # Warning! Adding two different watershed ID's may proove bad
@@ -168,6 +184,16 @@ class SiteID(object):
             return int(self) + int(other)
 
     def __sub__(self, other):
+        '''
+        Performs subtraction between SiteID (self) and other
+
+        other [Number or SiteID]: The second operand
+
+        Returns [Number or SiteID]: If other is Number, then we will calculate a new SiteID
+        based on that distance.
+
+        If other is a SiteID, we will return the distance that would result in the difference in SiteID number 
+        '''
         if type(self) is SiteID and type(other) is SiteID:
             if self.watershed != other.watershed:
                 # Warning! Subtracting two different watershed ID's may proove bad

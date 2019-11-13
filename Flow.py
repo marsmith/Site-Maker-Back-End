@@ -56,12 +56,22 @@ class Flow(object):
         '''
         return self.hasHigherPriority(other)
     def getSiteByID(self,id):
+        '''
+        Attempts to return either the upstream or downstream site if it matches the ID given
+        id [SiteID]: Comparison Object
+
+        Retuns [SiteID] or None: Depends on if there is a match
+        '''
         if self.upstreamSite.id == id:
             return self.upstreamSite
         elif self.downstreamSite.id == id:
             return self.downstreamSite
         return None
     def emptyCopy(self):
+        '''
+        Return a new Flow object based on 1st level data
+        (The connections between objects are not stored)
+        '''
         fl2 = Flow(self.id,self.upstreamSite.emptyCopy(),self.downstreamSite.emptyCopy(),self.length,self.reachCode,self.name)
         return fl2
 

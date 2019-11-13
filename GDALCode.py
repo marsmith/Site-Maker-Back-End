@@ -13,11 +13,11 @@ from net_tracer import net_tracer
 
 # Program Constants
 
-UC_BUFFER_MIN = 1000 # 1 km
-UC_BUFFER_MAX = 30000 # 30 km
-NY_STATE_AREA = 141299400000 # m^2
-MAX_CLUMP_FACTOR = 10
-INITIAL_UCLICK_SWEEP = 1 # 1m
+UC_BUFFER_MIN = 1000 # 1 km (What is the minimum size circle to draw)
+UC_BUFFER_MAX = 30000 # 30 km (What is the maximum size circle to draw)
+NY_STATE_AREA = 141299400000 # m^2 (Aprox. Area of the state)
+MAX_CLUMP_FACTOR = 10 # Maximum clump factor allowed 
+INITIAL_UCLICK_SWEEP = 1 # 1m (How many meters away from the line can our USER_CLICK be)
 USER_CLICK_X = -1.0
 USER_CLICK_Y = -1.0
 
@@ -34,6 +34,11 @@ def determineOptimalSearchRadius(stateArea = NY_STATE_AREA,numberOfSites=None,cl
     return r
 
 def getFirstFourDigitFraming(folderPath,siteLayerName):
+    '''
+    Finds the first four digit series of ID's that are avaliable and have no entries
+    folderPath [String]: Folder path of shapefile data (not including shapefile folder)
+    siteLayerName [String]: Name of Shapefile Folder/Shapefile
+    '''
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
     sitesDataSource = ogr.Open(path_sites)
     sl = sitesDataSource.GetLayer()
@@ -44,15 +49,38 @@ def getFirstFourDigitFraming(folderPath,siteLayerName):
         if ff in ffDict.keys():
             continue 
         else:
-            ffDict[ff] = "It's a secret message Luigi"
+            ffDict[ff] = "4dseries"
     return list(ffDict.keys())
 
-def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None,clFactor=2):
+def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX,clFactor=2):
+    '''
+    Will attempt to isolate a Network from the geospatial data provided
+    Raises Exception if there is a failure in parsing or invalid data
+    ** This is meant to be in a series of methods **
+
+    folderPath [String]: Path where the shapefile folders are
+    siteLayerName [String]: Folder name where the site shapefile is. 
+    lineLayerName [String]: Folder name where the line shapefile is. 
+    x [Number]: Longitude in decimal degree (float) notation
+    y [Number]: Latitude in decimal degree (float) notation
+    minDist [Number]: Minimum search buffer size (Default UC_BUFFER_MIN)
+    maxDist [Number]: Maximum search buffer size (Default UC_BUFFER_MAX)
+    clFactor [Number]: Clump Factor for optimal radius calculation (Default 2)
+
+    Returns [[Network,Point Geometry,Vector Layer Entry (Line),
+    Flow,Vector Layer(Sites),List(Of Vector Layer Entry(Site)),Number]]
+    0 - Network Isolated
+    1 - Projected Input Point
+    2 - Starting Line (User Clicked Line)
+    3 - Starting Flow (User Clicked Flow)
+    4 - Site Layer
+    5 - List of Site Entries in Site Layer inside the bubble
+    6 - Number of Entries in the Site Layer
+    '''
     # Create vars for return information
     global USER_CLICK_X
     global USER_CLICK_Y
     starterFlow = None
-
      
     # Load Lines
     path = str(folderPath) + "/" + str(lineLayerName) + "/" + str(lineLayerName) + ".shp"
@@ -89,10 +117,6 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         # optimal solution
         maxDist = determineOptimalSearchRadius(numberOfSites=numSites,clumpFactor=clFactor)
 
-
-    # Perform an automated split line on point for all flowlines inside MAX_RADIUS 
-    # which intersect existing real sites
-    # Load Selected Lines
     dataSource = ogr.Open(path)
     shpdriver = ogr.GetDriverByName('ESRI Shapefile')
     linesLayer = dataSource.GetLayer() 
@@ -105,7 +129,9 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     lineLength_index = linesLayer.GetLayerDefn().GetFieldIndex("LengthKM")
     lineID_index = linesLayer.GetLayerDefn().GetFieldIndex("GNIS_ID")
     lineFCode_index = linesLayer.GetLayerDefn().GetFieldIndex("FCode")
+    
     '''
+    # Split lines automatically on existing sites if not done so already? (BROKEN)
     while i < len(linesLayer):
         l_geom = linesLayer[i].GetGeometryRef()
         for s in sl:
@@ -152,6 +178,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
                 
         i += 1 # Increment line counter
     '''
+
     while len(interSites) < clFactor and dist < maxDist:
         geomBuffer = inputPointProj.Buffer(dist) # Buffer around the geometry  
             
@@ -167,40 +194,21 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         sl.ResetReading()
         if len(interSites) < clFactor:
             dist += 1000 # Expand by 2km           
-        
 
-    
-       
-    linesLayer.SetSpatialFilter(geomBuffer)
-
-    
-    # 46000 - 46007 StreamRiver [OK]
-    # 55800 ArtificialPath [OK]
-    # 56600 Coastline [only on coast. Do NOT use if not connected to an NHD Waterbody
-    # that is also a lake]
-    # 33400 Connector [OK]
-    
+    linesLayer.SetSpatialFilter(geomBuffer)    
     # Get certain info about site attributes
     siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
-    stationName_index = sl.GetLayerDefn().GetFieldIndex("station_nm")
-    
+    stationName_index = sl.GetLayerDefn().GetFieldIndex("station_nm")    
     siteCounter = 0
-    
-    
     interLines = []
     # Intersect of BUFFER and LINES
     for line in linesLayer:        
-        interLines.append(line)
-   
-
-      
+        interLines.append(line)   
     # Buffer all Lines
-    lBufferStore = {} # Stores line entry, Bool flag)
-    
+    lBufferStore = {} # Stores line entry, Bool flag)    
     sitesStore = {}# Stores Site object (fake site)
     flowList = [] # Stores Flowline object (flow)
-    lL = []
-    
+    lL = []    
     # Create Buffer polygon where user clicked    
     # Find line which ucBuff intersects
     ucBuff = inputPointProj.Buffer(1)
@@ -218,14 +226,12 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
         raise RuntimeError("isolateNetwork() [Error]: User Click was not snapped to line!")
     
     queue = [] # Stores keys
-    queue.append(startingLine)
-    
+    queue.append(startingLine)    
     counter = 0
     while len(queue) > 0:
         # Visualize the lines in stages       
         e = queue.pop(0) # This will be the line
-        lL.append(e)
-        
+        lL.append(e)        
         if lBufferStore[e] == True:
             # We have already visited this
             continue
@@ -367,10 +373,6 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             fName = e.GetFieldAsString(lineName_index)
             fCode = e.GetFieldAsString(lineFCode_index)
             fRC = int(e.GetFieldAsString(lineRC_index)) # Go 1676!!
-            if siteCounter == 15:
-                pass
-                #print("Hello")
-
             f = Flow(fid,upSite,downSite,flen,fRC)
             counter +=1
             if e == startingLine:
@@ -382,14 +384,33 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
-    starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it
-    
-    
+    starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it  
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
     
 
 def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=True):
+    '''
+    Attempts to calculate a new siteID with the given data information.
+
+    Raises Exception if any step along the way fails
+
+    longg [Number]: Longitude in decimal degree (float) notation
+    latt [Number]: Latitude in decimal degree (float) notation
+    folderPath [String]: Path where the shapefile folders are
+    siteLayerName [String]: Folder name where the site shapefile is. (1)
+    lineLayerName [String]: Folder name where the line shapefile is. (2)
+    cf [Number]: Clump Factor for optimal radius calculation (Default 2)
+    VIS [Bool]: Should we launch the visualizer (Default False)
+    isTest [Bool]: Are we operating in test mode? (Default True)
+
+    Returns [SiteID]: The SiteID object to be calculated at the specified longg latt. (3)
+
+    *(1) The site shapefile must be the same name as the folder it is in
+    *(2) The line shapefile must be the sname name as the folder it is in
+    *(3) The longg and latt MUST be snapped on or within 1 meter of the lines.
+
+    '''
     [net,ucPoint,startingLine,startFlow,siteLayer,interSites,numSites] = isolateNetwork(dataFolder,siteLayerName,lineLayerName,x,y,UC_BUFFER_MIN,None,cf)
     net.calculateUpstreamDistances()    
     net.calcStraihler()    
@@ -525,8 +546,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         
         else:
             # We must conform to the SiteTheory Standard for multiple sites
-            # Determine order of execution
-            
+            # Determine order of execution            
             orderedList = testFlight(net,startFlow)
             
             fIndex = -1 #index where the starter flow is

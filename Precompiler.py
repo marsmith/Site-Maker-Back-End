@@ -97,7 +97,17 @@ def removeUseless(net,addLengths=False,ucFlow=None,removeReals=False):
             
 
 def testFlight(net,ucFlow,sinkSite = None):
-    # Use bitwise or to format final values
+    '''
+    Will run a lite version of pSNA (Will not alter any ID's at all).
+    Usefull for getting the "order of execution" for an entire network
+    
+    uCFlow [Flow]: The flowline the user wants to start from
+
+    sinkSite [Site]: The bottom of the network (the outflow, the root)
+
+    Returns [List(Of Site or Flow)]: List of elements encountered (IN ORDER)
+    while running testFlight
+    '''
     if sinkSite is None:
         sinkSite = net.calculateSink()[0]
     
@@ -156,28 +166,32 @@ def testFlight(net,ucFlow,sinkSite = None):
 def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
     '''
     Will assign real ID's to the fake nodes via the Proportional Site Naming Algorithm
-    1km is the mininum distance to generate unique 8 digit ID's. The network must represent the 
-    same watershed in this case.
+    1km is the mininum distance to generate unique 8 digit ID's. 
     pSNA will NOT shift down ID's if one exists already. This is a theoretical model
     pSNA WILL generate 10 digit ID's if the distance accumulated between two sites is less than the
     unit length (1km by default)
-    0000 | 0000
-    WTRSHD  UNIQUE
 
     net [Network]: Network to perform algorithm on.
+
     maxDownstreamID [SiteID]: The maximal ID for the network. (This is what the sinksite will be)
-    sinkSite [Site]: [Optional!] The lowermost site in the network. Parent to all. If not provided, will be computed 
+
+    sinkSite [Site]: [Optional!] The lowermost site in the network. Parent to all. If not provided, will be computed
+
     strict [Boolean]: [Optional!] Determines if alg will allow for already ID'd nodes in the network. If False, will only look for
-                        downwardsRefID's and skip if there is one
+    downwardsRefID's and skip if there is one
+
+    Returns [SiteID]: The last SiteID assigned to a part of the network by the algorithm.
     '''
     def alg(idBefore,leng,unitDist = 1): 
         ''' 
-        Internal core algorithm. 
+        Internal core algorithm. (Basically using the subtraction operator for a SiteID and Number)
+
         idBefore [SiteID]: What the ID was before
-        totalAccum [number]: Total accumulated distance so far
+
         leng [number]: Length to be computed with
+
         unitDist [number]: How long before the value portion of an ID ticks down to -1
-                            of the previous
+        of the previous
         '''       
         return idBefore - (leng * unitDist)
     #---------------------------------------------------------------------
@@ -232,8 +246,6 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
                 # Not assgned yet!
                 queue.append(cs[0])
         else:
-            # INVALID NODE
-            #raise RuntimeError("ERROR: pSNA() Did you run removeUseless() before?")
             pass
 
         if t[2] is None:
@@ -251,15 +263,16 @@ def pSNA(net,maxDownstreamID,sinkSite = None,strict=False):
 
 def iSNA(net,rsc):
     '''
-    Altered version of pSNA for running with real sites in network
+    Wrapper method of pSNA for running with real sites in network. Will execute pSNA one flow length
+    away from an already assigned site in rsc
+
+    net [Network]: Network to perform algorithm on.
+    rsc [List(Of Site)]: List of sites which were assigned in net_tracer
+
+    Returns None
     '''
-    
-    # Use bitwise or to format final values
-    
-    queue = []  
-    
-    # Step 1: Starting from the sink site, assign the site.assignedID field
-    
+    queue = []      
+    # Step 1: Starting from the sink site, assign the site.assignedID field    
     distAccum = 0
     i = 0
     lastRef = None
@@ -268,8 +281,6 @@ def iSNA(net,rsc):
         while len(queue) >= 1:
             # Pop out the tuple
             u = queue.pop(0)
-            
-            
             # Basically go one layer out and then run pSNA from that point
             # Find the flow that has no data
             cs = u.connectedSites()
@@ -300,9 +311,7 @@ def iSNA(net,rsc):
                     newSiteID = u.downwardRefID - fl.length
                             
                 lastRef = pSNA(net,newSiteID,startSite,False)
-                # Determin the lastRef
-                
-
+                # Determin the lastRef               
                 if u.downwardRefID is None:
                     u.downwardRefID = lastRef
 

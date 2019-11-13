@@ -49,7 +49,7 @@ def recommendName(folderPath,sitefileName,datapack={"placeName":None,"placeNameS
         for site in sl:
             siteName = site.GetFieldAsString(siteName_index)
             i = 0
-            while i < len(recomendations)            
+            while i < len(recomendations):           
                 if siteName == recomendations[i]:
                     # Lets try other recomendations
                     recomendations.pop(i)
