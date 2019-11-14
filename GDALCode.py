@@ -7,7 +7,8 @@ import os
 import csv
 import time
 import threading
-import Timesaver
+import multiprocessing
+from Timesaver import *
 from Precompiler import *
 from net_tracer import net_tracer
 
@@ -239,7 +240,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
-            if fCode == 42807 or fCode == 33600 or fCode == 55800:
+            if fCode == 42807 or fCode == 33600 or fCode == 56600:
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
@@ -416,7 +417,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     net.calcStraihler()    
     reals = net.getRealSites()
 
-    def return_site(newSite, dataFolder, siteLayerName):
+    def return_site(newSite, folderPath, siteLayerName):
         if newSite.extension:
             extension_flag = True
             path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
@@ -716,9 +717,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     
 if __name__ == "__main__":
     # Set a time limit on execution of this module to 30 seconds
-    
+    multiprocessing.set_start_method('spawn', True)
 
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
     siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     # Testing just the auto split feature
@@ -749,17 +750,19 @@ if __name__ == "__main__":
         [longg,latt,z] = cTran.TransformPoint(x,y)    
         try:
             before = time.time()
-            newSite = determineNewSiteID(longg,latt,folderPath,siteLayerName,lineLayerName,3,False)
+            newSite = determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,60)
+            print("RAN!")
             after = time.time()
             writer = csv.writer(file)
-            writer.writerow([siteID, newSite, after-before])
+            writer.writerow([str(siteID), str(newSite), after-before])
             if newSite == SiteID("00345000"):
                 newSeriesCntr += 1
             else:
                 regCntr += 1
-        except:
+        except Exception as e:
+            writer = csv.writer(file)
+            writer.writerow([str(siteID), "ERROR: " + str(e), "NaN"])
             print("Error on finding")
-            
-        if newSeriesCntr + regCntr > 100:
-            break
+        # if newSeriesCntr + regCntr > 100:
+        #     break
     file.close()
