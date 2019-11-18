@@ -70,6 +70,7 @@ class Network(object):
                 self.flowTable.pop(i)
             else:               
                 i += 1
+
     def getRealSites(self):
         '''
         Determines a list of all the real sites in this network
@@ -354,8 +355,6 @@ class Network(object):
 
                 if flow.upstreamSite == curr:
                     up.append(flow)
-            # if curr.id == 13:
-            #     print()
 
             if len(down) == 2 and down[0].upstreamSite == down[1].upstreamSite:
                 for f in down:
@@ -413,9 +412,6 @@ class Network(object):
         ftCopy = []
         stCopy = []
         
-        # How do we deepcopy the sites and flows without getting into a recursive
-        # nightmare. This is the main task for here
-
         net = Network(ft,st)
         net.recalculateTotalLength()
         net.unitLength = int(net.totalSize / 10)

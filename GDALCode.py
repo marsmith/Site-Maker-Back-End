@@ -420,7 +420,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
     def return_site(newSite, folderPath, siteLayerName):
         if newSite.extension:
             extension_flag = True
-            path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+            path_sites = str(dataFolder) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
             sitesDataSource = ogr.Open(path_sites)
             sl = sitesDataSource.GetLayer()
             siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
@@ -720,7 +720,7 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn', True)
 
     folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    siteLayerName = "ProjectedSites"
+    siteLayerName = "ProjectedSitesNoNYC"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     # Testing just the auto split feature
 
