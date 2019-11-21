@@ -14,7 +14,7 @@ from net_tracer import net_tracer
 
 # Program Constants
 
-UC_BUFFER_MIN = 1000 # 1 km (What is the minimum size circle to draw)
+UC_BUFFER_MIN = 5000 # 5 km (What is the minimum size circle to draw)
 UC_BUFFER_MAX = 30000 # 30 km (What is the maximum size circle to draw)
 NY_STATE_AREA = 141299400000 # m^2 (Aprox. Area of the state)
 MAX_CLUMP_FACTOR = 10 # Maximum clump factor allowed 
@@ -52,8 +52,19 @@ def getFirstFourDigitFraming(folderPath,siteLayerName):
         else:
             ffDict[ff] = "4dseries"
     return list(ffDict.keys())
+def getFirstFourDigitFraming_Existing(interSites):
+    ffDict = {}
+    for sentry in interSites:
+        siteGe = sentry[0]
+        siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+        ff = siteGe.GetFieldAsString(siteNumber_index)[0:4]
+        if ff in ffDict.keys():
+            continue
+        else:
+            ffDict[ff] = "4dseries"
+    return list(ffDict.keys())
 
-def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= UC_BUFFER_MAX,clFactor=2):
+def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFER_MIN,maxDist= None,clFactor=2):
     '''
     Will attempt to isolate a Network from the geospatial data provided
     Raises Exception if there is a failure in parsing or invalid data
@@ -385,7 +396,8 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             
     # From the stored sites and flows, derive the network structure
     netti = Network(flowList,list(sitesStore.values()))
-    starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it  
+    starterFlow = removeUseless(netti,True,starterFlow) # Pass in starterFlow so we can re-assign it
+    
     return [netti,inputPointProj,startingLine,starterFlow,sl,interSites,len(sl)]
     
     
@@ -446,7 +458,7 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                 return newSite     
         else:
             return newSite
-    def find_with_no_sites(dataFolder, siteLayerName):
+    def find_with_no_sites(dataFolder, siteLayerName,minStartFour=None):
         # We have no reference to base off of, select a new first four digit series and select the middle
             digitBasis = getFirstFourDigitFraming(dataFolder,siteLayerName)
             digitBasis.sort()
@@ -454,13 +466,20 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             before = None
             for digits in digitBasis:
                 if before is None:
-                    before = digits
-                    continue
+                    if minStartID is None:
+                        before = digits
+                        continue
+                    else:
+                        if int(digits) > int(minStartFour):
+                            before = digits
+                            continue
                 if int(digits) - int(before) > 1:
                     # We have a gap
                     break
                 else:
-                    before = digits            
+                    before = digits     
+            if before is None:
+                raise RuntimeError("find_with_no_sites [Error]: minStartFour provided too high")       
             newHighest = (int(before) + 1) * 10000 + 5000
             newHighest = "%08d" %(newHighest)
             newSiteID = SiteID(newHighest)
@@ -695,8 +714,9 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
         
         # Try running again but this time go to the extreme,
         # based on the site density of the state
-        prev = determineOptimalSearchRadius(NY_STATE_AREA,numSites,2)
-        r = determineOptimalSearchRadius(NY_STATE_AREA,numSites,3)
+        prev = determineOptimalSearchRadius(NY_STATE_AREA,numSites,3)
+        r = min(determineOptimalSearchRadius(NY_STATE_AREA,numSites,5),UC_BUFFER_MAX)
+
         reals = []
         if r <= UC_BUFFER_MAX:
             # Radius recommended does not exceed upper bounds! Execute again
@@ -706,10 +726,20 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
             reals = net.getRealSites()
 
         if len(reals) == 0:
-            id = find_with_no_sites(dataFolder,siteLayerName)
-            if VIS:
-                Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, id)
-            return return_site(id, dataFolder, siteLayerName)
+            if len(interSites) < 1:
+                id = find_with_no_sites(dataFolder,siteLayerName)
+                if VIS:
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, id)
+                return return_site(id, dataFolder, siteLayerName)
+            else:
+                # Try and guess based off of the next highest in that local area
+                ff = getFirstFourDigitFraming_Existing(interSites)
+                ff.sort(reverse=True)
+                assert(len(ff) > 0)
+                id = find_with_no_sites(dataFolder,siteLayerName,ff[0])
+                if VIS:
+                    Visualizer.visualize(net, USER_CLICK_X, USER_CLICK_Y, id)
+                return return_site(id, dataFolder, siteLayerName)
         else:
             return foundSomething()
     else:
@@ -719,11 +749,12 @@ if __name__ == "__main__":
     # Set a time limit on execution of this module to 30 seconds
     multiprocessing.set_start_method('spawn', True)
 
-    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    siteLayerName = "ProjectedSitesNoNYC"
+    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
+    siteLayerName = "ProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     # Testing just the auto split feature
-
+    newSite = determineNewSiteID(-75.4852607,42.0486363,folderPath,siteLayerName,lineLayerName,2,True,True)
+    print(newSite)
 
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
