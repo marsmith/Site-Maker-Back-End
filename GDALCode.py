@@ -749,8 +749,8 @@ if __name__ == "__main__":
     # Set a time limit on execution of this module to 30 seconds
     multiprocessing.set_start_method('spawn', True)
 
-    folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
-    siteLayerName = "ProjectedSites"
+    folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
+    siteLayerName = "AlteredProjectedSites"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     # Testing just the auto split feature
     newSite = determineNewSiteID(-75.4852607,42.0486363,folderPath,siteLayerName,lineLayerName,2,True,True)
@@ -778,10 +778,11 @@ if __name__ == "__main__":
         sgeom = site.GetGeometryRef()
         x = sgeom.GetX()
         y = sgeom.GetY()
-        [longg,latt,z] = cTran.TransformPoint(x,y)    
+        [longg,latt,z] = cTran.TransformPoint(x,y)
         try:
             before = time.time()
             newSite = determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,60)
+           #newSite = determineNewSiteID(longg, latt, folderPath, siteLayerName, lineLayerName)
             print("RAN!")
             after = time.time()
             writer = csv.writer(file)
