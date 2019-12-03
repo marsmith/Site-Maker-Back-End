@@ -50,18 +50,3 @@ def determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,
         raise rD["exception"]
     else:
         raise RuntimeError("determineNewSiteID_Timely() [Error]: Could not determine ID in time")
-
-
-# if __name__ == "__main__":
-    # folderPath = "C:\\Users\\mpanozzo\\Desktop\\GDAL_DATA_PR"
-    # siteLayerName = "ProjectedSites"
-    # lineLayerName = "NHDFlowline_Project_SplitLin3"
-    # longg = -73.52481561 #-76.3612354
-    # latt = 41.1930218#43.4810611 
-    # try:
-    #     newID = determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,1) 
-    #     print(newID)
-    # except Exception as e:
-    #     print(e)
-   
-    
