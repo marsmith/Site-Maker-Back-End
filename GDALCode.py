@@ -57,7 +57,6 @@ def getFirstFourDigitFraming_Existing(interSites):
     ffDict = {}
     for sentry in interSites:
         siteGe = sentry[0]
-        siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
         ff = siteGe.GetFieldAsString(siteNumber_index)[0:4]
         if ff in ffDict.keys():
             continue
@@ -252,7 +251,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
             # Check to make sure e does not have a restricted FCode
             # Restricted FCodes are 42807
             fCode = int(e.GetFieldAsString(lineFCode_index))
-            if fCode == 42807 or fCode == 33600 or fCode == 56600:
+            if fCode == 42807 or fCode == 33600:
                 continue # Skip this line, ignore it completely
             
             _npt = e.GetGeometryRef().GetPointCount()
@@ -699,9 +698,11 @@ def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False
                         l_geom = startingLine.GetGeometryRef()
                         ucBuff = ucPoint.Buffer(1)
                         ldiff = l_geom.Difference(ucBuff)
-                        assert(ldiff.GetGeometryCount() == 2)
+                        if ldiff.GetGeometryCount() != 2:
+                            ucToLower_Frac = ldiff.Length() / l_geom.Length()
+                        else:
+                            ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
 
-                        ucToLower_Frac = ldiff.GetGeometryRef(1).Length() / l_geom.Length()
                         lengthP = orderedList[fIndex].length * ucToLower_Frac
                         
                         YAY = orderedList[fIndex].downstreamSite.assignedID - (lengthP * UL)
@@ -751,12 +752,14 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn', True)
 
     folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    arguments = sys.argv[1]
-    a = arguments.split(",")
-    siteLayerName = a[0]
-    lineLayerName = a[1]
-    newSite = determineNewSiteID_Timely(float(a[2]),float(a[3]),folderPath,siteLayerName,lineLayerName,60)
-    res = {'Results': newSite}
+   # arguments = sys.argv[1]
+    #a = arguments.split(",")
+    siteLayerName = "ProjectedSites"
+    lineLayerName = "NHDFlowline_Project_SplitLin3"
+    x = 43.34607771415082
+    y = -75.05865229132792
+    newSite = determineNewSiteID(y,x,folderPath,siteLayerName,lineLayerName,60)
+    res = {'Results': str(newSite)}
     results = json.dumps(res)
     print(results)
 
