@@ -4,6 +4,7 @@ from osgeo import osr
 from osgeo import gdal_array
 from osgeo import gdalconst
 import os
+import sys
 import csv
 import time
 import threading
@@ -402,7 +403,7 @@ def isolateNetwork(folderPath,siteLayerName,lineLayerName,x,y,minDist = UC_BUFFE
     
     
 
-def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=True):
+def determineNewSiteID(x,y,dataFolder,siteLayerName,lineLayerName,cf=2,VIS=False,isTest=False):
     '''
     Attempts to calculate a new siteID with the given data information.
 
@@ -750,51 +751,66 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn', True)
 
     folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    siteLayerName = "NearGreatLakes"
-    lineLayerName = "NHDFlowline_Project_SplitLin3"
-    # Testing just the auto split feature
-    # newSite = determineNewSiteID(-75.4852607,42.0486363,folderPath,siteLayerName,lineLayerName,2,True,True)
-    # print(newSite)
+    arguments = sys.argv[1]
+    a = arguments.split(",")
+    siteLayerName = a[0]
+    lineLayerName = a[1]
+    newSite = determineNewSiteID_Timely(float(a[2]),float(a[3]),folderPath,siteLayerName,lineLayerName,60)
+    res = {'Results': newSite}
+    results = json.dumps(res)
+    print(results)
 
-    path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+    '''
 
-    file = open("GeneratedSiteTests.csv", "w")
-    writer = csv.writer(file)
-    writer.writerow(["Human", "Algorithm", "Runtime"])
-    sitesDataSource = ogr.Open(path_sites)
-    sl = sitesDataSource.GetLayer()
-    siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
-    counter = 0
-    oRef = osr.SpatialReference()
-    oRef.ImportFromEPSG(4326)
-    # Reproject
-    targRef = osr.SpatialReference()
-    targRef.ImportFromEPSG(26918)
-    cTran = osr.CoordinateTransformation(targRef,oRef)
-    newSeriesCntr = 0
-    regCntr = 0
-    for site in sl:
-        siteID = site.GetFieldAsString(siteNumber_index)
-        sgeom = site.GetGeometryRef()
-        x = sgeom.GetX()
-        y = sgeom.GetY()
-        [longg,latt,z] = cTran.TransformPoint(x,y)
-        try:
-            before = time.time()
-            newSite = determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,60)
-           #newSite = determineNewSiteID(longg, latt, folderPath, siteLayerName, lineLayerName)
-            print("RAN!")
-            after = time.time()
-            writer = csv.writer(file)
-            writer.writerow([str(siteID), str(newSite), after-before])
-            if newSite == SiteID("00345000"):
-                newSeriesCntr += 1
-            else:
-                regCntr += 1
-        except Exception as e:
-            writer = csv.writer(file)
-            writer.writerow([str(siteID), "ERROR: " + str(e), "NaN"])
-            print("Error on finding")
-        # if newSeriesCntr + regCntr > 100:
-        #     break
-    file.close()
+       _____           _    _               
+      |_   _|         | |  (_)              
+        | |  ___  ___ | |_  _  _ __    __ _ 
+        | | / _ \/ __|| __|| || '_ \  / _` |
+        | ||  __/\__ \| |_ | || | | || (_| |
+        \_/ \___||___/ \__||_||_| |_| \__, |
+                                       __/ |
+                                       |___/ 
+ 
+    '''
+    # path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
+
+    # file = open("GeneratedSiteTests.csv", "w")
+    # writer = csv.writer(file)
+    # writer.writerow(["Human", "Algorithm", "Runtime"])
+    # sitesDataSource = ogr.Open(path_sites)
+    # sl = sitesDataSource.GetLayer()
+    # siteNumber_index = sl.GetLayerDefn().GetFieldIndex("site_no")
+    # counter = 0
+    # oRef = osr.SpatialReference()
+    # oRef.ImportFromEPSG(4326)
+    # # Reproject
+    # targRef = osr.SpatialReference()
+    # targRef.ImportFromEPSG(26918)
+    # cTran = osr.CoordinateTransformation(targRef,oRef)
+    # newSeriesCntr = 0
+    # regCntr = 0
+    # for site in sl:
+    #     siteID = site.GetFieldAsString(siteNumber_index)
+    #     sgeom = site.GetGeometryRef()
+    #     x = sgeom.GetX()
+    #     y = sgeom.GetY()
+    #     [longg,latt,z] = cTran.TransformPoint(x,y)
+    #     try:
+    #         before = time.time()
+    #         newSite = determineNewSiteID_Timely(longg,latt,folderPath,siteLayerName,lineLayerName,60)
+    #        #newSite = determineNewSiteID(longg, latt, folderPath, siteLayerName, lineLayerName)
+    #         print("RAN!")
+    #         after = time.time()
+    #         writer = csv.writer(file)
+    #         writer.writerow([str(siteID), str(newSite), after-before])
+    #         if newSite == SiteID("00345000"):
+    #             newSeriesCntr += 1
+    #         else:
+    #             regCntr += 1
+    #     except Exception as e:
+    #         writer = csv.writer(file)
+    #         writer.writerow([str(siteID), "ERROR: " + str(e), "NaN"])
+    #         print("Error on finding")
+    #     # if newSeriesCntr + regCntr > 100:
+    #     #     break
+    # file.close()

@@ -22,7 +22,6 @@ def Namer(placeName, State, distance, GNIS_Name, mouthOrOutlet, cardinalDir, fol
         if "south" in cardinalDir:
             dis.append("below")
         dis.append(cardinalDir + " of")
-        dis.append(str(int(distance)) + " miles " + cardinalDir + " of")
         dis.append(str(distance) + " miles " + cardinalDir + " of")
 
     else:
@@ -32,7 +31,6 @@ def Namer(placeName, State, distance, GNIS_Name, mouthOrOutlet, cardinalDir, fol
         if "south" in cardinalDir:
             dis.append("below")
         dis.append(cardinalDir + " of")
-        dis.append(str(int(distance)) + " miles " + cardinalDir + " of")
         dis.append(str(round(distance, 2)) + " miles " + cardinalDir + " of")
     
     end = placeName + ", " + State
@@ -54,7 +52,7 @@ def Namer(placeName, State, distance, GNIS_Name, mouthOrOutlet, cardinalDir, fol
     return poss
 
 a = sys.argv[1]
-k = a.split(" ")
+k = a.split(",")
 pos = Namer(k[0], k[1], float(k[2]), k[3], k[4], k[5], "/Users/nicknack/Downloads/GDAL_DATA_PR", "ProjectedSites")
 
 res = {'Results':pos}
