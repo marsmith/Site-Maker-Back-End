@@ -750,11 +750,11 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn', True)
 
     folderPath = "/Users/nicknack/Downloads/GDAL_DATA_PR"
-    siteLayerName = "AlteredProjectedSites"
+    siteLayerName = "NearGreatLakes"
     lineLayerName = "NHDFlowline_Project_SplitLin3"
     # Testing just the auto split feature
-    newSite = determineNewSiteID(-75.4852607,42.0486363,folderPath,siteLayerName,lineLayerName,2,True,True)
-    print(newSite)
+    # newSite = determineNewSiteID(-75.4852607,42.0486363,folderPath,siteLayerName,lineLayerName,2,True,True)
+    # print(newSite)
 
     path_sites = str(folderPath) + "/" + str(siteLayerName) + "/" + str(siteLayerName) + ".shp"
 
