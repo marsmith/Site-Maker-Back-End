@@ -3,6 +3,8 @@ from osgeo import ogr
 from osgeo import osr
 from osgeo import gdal_array
 from osgeo import gdalconst
+import sys
+import json
 
 def Namer(placeName, State, distance, GNIS_Name, mouthOrOutlet, cardinalDir, folderPath, siteLayerName):
     beg = ""
@@ -51,7 +53,12 @@ def Namer(placeName, State, distance, GNIS_Name, mouthOrOutlet, cardinalDir, fol
     
     return poss
 
-pos = Namer("Oregon", "New York", 2.0729165106, "North Creek", "", "east", "/Users/nicknack/Downloads/GDAL_DATA_PR", "ProjectedSites")
-for p in pos:
-    print(p)
+a = sys.argv[1]
+k = a.split(" ")
+pos = Namer(k[0], k[1], float(k[2]), k[3], k[4], k[5], "/Users/nicknack/Downloads/GDAL_DATA_PR", "ProjectedSites")
+
+res = {'Results':pos}
+results = json.dumps(res)
+print(results)
+
  
